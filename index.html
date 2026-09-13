@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FPS Azul</title>
+  </head>
+  <body>
+    <div id="hud">
+      <div id="hp-bar">
+        <div id="hp-fill"></div>
+        <span id="hp-text">20 / 20</span>
+      </div>
+      <strong id="weapon-label">Pistola</strong>
+      <span id="time">Tiempo: 1:00</span>
+      <span id="hint"
+        >Click: jugar / disparar · WASD: mover · Ratón: mirar · 1/2/3 o rueda:
+        cambiar arma</span
+      >
+    </div>
+    <div id="crosshair"></div>
+    <div id="announce"></div>
+    <div id="damage-flash"></div>
+    <div id="gameover">
+      <h1 id="gameover-title">Has muerto</h1>
+      <button id="restart">Reintentar</button>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
