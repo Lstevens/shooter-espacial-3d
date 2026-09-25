@@ -1,6 +1,6 @@
 # Shooter 3D (arena)
 
-Prototipo educativo de un shooter 3D en primera persona hecho con Three.js + Vite.
+Prototipo de un shooter 3D en primera persona hecho con Three.js + Vite.
 Sobrevive 60 segundos en una arena cerrada eliminando enemigos; a los 40 segundos aparece un jefe final.
 
 ## Requisitos
