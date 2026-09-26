@@ -56,7 +56,7 @@ export const MOB_VARIANTS = {
     color: 0x2f7fff,
     scale: 1,
     speed: 2.2,
-    damage: 5,
+    damage: 2,
     attackRange: 1.7,
     attackCooldown: 1,
   },
@@ -67,7 +67,7 @@ export const MOB_VARIANTS = {
     speed: 3.2,
     damage: 8,
     attackRange: 2.6,
-    attackCooldown: 0.6,
+    attackCooldown: 2,
   },
 };
 
