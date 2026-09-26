@@ -9,7 +9,7 @@ src/
   config.js                  constantes y tunables
   contracts.js               contratos JSDoc compartidos
   core/     EventEmitter, GameState, Game
-  engine/   Arena, createRenderer
+  engine/   Arena, SpaceSkybox, createRenderer
   input/    InputController, KeyboardInput, MouseInput
   player/   Player
   weapons/  WeaponCatalog, WeaponFactory, ViewModel, WeaponSystem
@@ -62,6 +62,11 @@ classDiagram
         +addLights()
         +addGround()
         +addWalls()
+    }
+
+    class SpaceSkybox {
+        +Group group
+        +update(delta, elapsed)
     }
 
     class Player {
@@ -175,6 +180,7 @@ classDiagram
     Game o-- WeaponSystem : actualiza
     Game o-- MobSystem : actualiza
     Game o-- EffectsSystem : actualiza
+    Game o-- SpaceSkybox : anima
     Game o-- Hud : dibuja
     Game --> InputController : consulta
     Arena *-- Player : aloja camera

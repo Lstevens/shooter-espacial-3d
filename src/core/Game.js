@@ -18,10 +18,11 @@ export class Game {
   #weapons;
   #mobs;
   #effects;
+  #skybox;
   #hud;
   #frame = () => this.#tick();
 
-  constructor({ scene, renderer, camera, state, player, input, weapons, mobs, effects, hud }) {
+  constructor({ scene, renderer, camera, state, player, input, weapons, mobs, effects, skybox, hud }) {
     this.#scene = scene;
     this.#renderer = renderer;
     this.#camera = camera;
@@ -31,6 +32,7 @@ export class Game {
     this.#weapons = weapons;
     this.#mobs = mobs;
     this.#effects = effects;
+    this.#skybox = skybox;
     this.#hud = hud;
   }
 
@@ -78,6 +80,7 @@ export class Game {
       this.#weapons.update(delta);
     }
     this.#effects.update(delta);
+    this.#skybox?.update(delta, this.#clock.elapsedTime);
     this.#hud.updateAnnounce(delta);
     this.#hud.render(this.#snapshot());
   }
