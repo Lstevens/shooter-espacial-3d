@@ -1,6 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { Arena } from './engine/Arena.js';
+import { SpaceSkybox } from './engine/SpaceSkybox.js';
 import { createRenderer } from './engine/createRenderer.js';
 import { Player } from './player/Player.js';
 import { InputController, INPUT_EVENTS } from './input/InputController.js';
@@ -15,6 +16,7 @@ import { GameState } from './core/GameState.js';
 import { Game } from './core/Game.js';
 
 const arena = new Arena();
+const skybox = new SpaceSkybox({ scene: arena.scene });
 const renderer = createRenderer(document.body);
 const clock = new THREE.Clock();
 
@@ -54,6 +56,7 @@ const game = new Game({
   weapons,
   mobs,
   effects,
+  skybox,
   hud,
 });
 

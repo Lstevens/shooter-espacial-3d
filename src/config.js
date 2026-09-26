@@ -2,7 +2,7 @@ export const ARENA = {
   size: 20,
   half: 10,
   wallHeight: 3,
-  background: 0x101218,
+  background: 0x04060e,
   fogNear: 35,
   fogFar: 80,
   groundColor: 0x2a2f3a,
@@ -18,6 +18,25 @@ export const LIGHTS = {
   sunColor: 0xffffff,
   sunIntensity: 2.2,
   sunPosition: [6, 10, 4],
+};
+
+/**
+ * Cielo procedural. Ojo: starRadius y las distancias de los planetas tienen que
+ * quedar por debajo de PLAYER.far (200) y por encima de ARENA.fogFar (80),
+ * o el cielo desaparece dentro de la niebla o queda detras del far plane.
+ */
+export const SKY = {
+  starRadius: 160,
+  starCount: 1400,
+  starSize: 1.2,
+  twinkleSpeed: 2.5,
+  starDrift: 0.004,
+  colors: [0xffffff, 0xbfd8ff, 0xffd9b3, 0xffb3c2],
+  planets: [
+    { direction: [-0.6, 0.5, -0.55], distance: 120, radius: 10, color: 0x9a4f2e, ring: false },
+    { direction: [0.65, 0.35, -0.6], distance: 115, radius: 7, color: 0x6f8fbf, ring: true },
+    { direction: [0.15, 0.7, 0.65], distance: 130, radius: 5.5, color: 0x8a6fbf, ring: false },
+  ],
 };
 
 export const GAME = {
