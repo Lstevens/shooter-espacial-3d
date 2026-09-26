@@ -10,11 +10,15 @@
  * @property {boolean} automatic dispara mientras el boton este presionado
  * @property {number} range
  * @property {string} attack id de la estrategia de ataque en WeaponSystem
+ * @property {{x: number, y: number, z: number}} muzzle boca del arma en el espacio del modelo
+ * @property {number} flashScale tamano del destello de boca
+ * @property {number} recoilPush retroceso del arma al disparar
+ * @property {number} swingPush avance del arma al golpear cuerpo a cuerpo
  *
  * @typedef {Object} AttackContext
  * @property {import('three').Vector3} origin posicion del jugador
  * @property {import('three').Vector3} direction vector normalizado hacia donde mira
- * @property {import('three').Vector3} muzzle punto de salida del proyectil
+ * @property {import('three').Vector3} muzzle punto de salida del proyectil, vector temporal del ViewModel: copiar antes de usar
  * @property {Target[]} targets todo lo que puede recibir dano
  * @property {{ spawnBurst: (position: import('three').Vector3, count: number, speed: number, hex: number) => void,
  *              spawnTracer: (from: import('three').Vector3, to: import('three').Vector3) => void }} fx
@@ -32,7 +36,6 @@
  * @typedef {Object} ViewSource lo que un arma necesita ver para dispararse
  * @property {import('three').Vector3} origin
  * @property {() => import('three').Vector3} forward
- * @property {() => import('three').Vector3} muzzleWorldPosition
  * @property {number} bobPhase
  *
  * @typedef {Object} MovementAxis

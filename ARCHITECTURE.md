@@ -70,7 +70,6 @@ classDiagram
         +Vector3 origin
         +update(delta, axis)
         +forward()
-        +muzzleWorldPosition()
         +lock()
         +unlock()
     }
@@ -93,6 +92,10 @@ classDiagram
         +boolean automatic
         +number range
         +string attack
+        +Vector3 muzzle
+        +number flashScale
+        +number recoilPush
+        +number swingPush
     }
 
     class AttackStrategy {
@@ -115,6 +118,7 @@ classDiagram
         +Group holder
         +onSwitch(key)
         +onShot(weapon)
+        +muzzleWorldPosition()
         +update(delta, bobPhase, elapsed)
     }
 

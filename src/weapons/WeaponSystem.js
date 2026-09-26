@@ -73,7 +73,7 @@ export class WeaponSystem {
     return {
       origin: this.#view.origin,
       direction: this.#view.forward(),
-      muzzle: this.#view.muzzleWorldPosition(),
+      muzzle: this.#viewModel.muzzleWorldPosition(),
       targets: this.#targets,
       fx: this.#effects,
     };

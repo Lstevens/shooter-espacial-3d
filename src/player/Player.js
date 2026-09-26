@@ -7,7 +7,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 
 /**
  * Jugador en primera persona. Implementa el contrato ViewSource
- * (origin, forward, muzzleWorldPosition, bobPhase) que usan las armas.
+ * (origin, forward, bobPhase) que usan las armas.
  */
 export class Player {
   #camera;
@@ -16,7 +16,6 @@ export class Player {
   #forward = new THREE.Vector3();
   #right = new THREE.Vector3();
   #direction = new THREE.Vector3();
-  #muzzle = new THREE.Vector3(0.3, -0.22, -1.1);
   bobPhase = 0;
 
   constructor({ scene, domElement }) {
@@ -52,10 +51,6 @@ export class Player {
 
   forward(target = new THREE.Vector3()) {
     return this.#camera.getWorldDirection(target);
-  }
-
-  muzzleWorldPosition() {
-    return this.#camera.localToWorld(this.#muzzle);
   }
 
   on(event, handler) {

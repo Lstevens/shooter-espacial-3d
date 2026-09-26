@@ -12,6 +12,10 @@ export const WEAPON_CATALOG = {
     automatic: false,
     range: 50,
     attack: ATTACKS.hitscan,
+    muzzle: { x: 0, y: 0.02, z: -0.27 },
+    flashScale: 0.4,
+    recoilPush: 0.075,
+    swingPush: 0,
   },
   ak: {
     label: 'AK',
@@ -20,6 +24,10 @@ export const WEAPON_CATALOG = {
     automatic: true,
     range: 50,
     attack: ATTACKS.hitscan,
+    muzzle: { x: 0, y: 0, z: -0.75 },
+    flashScale: 0.62,
+    recoilPush: 0.05,
+    swingPush: 0,
   },
   knife: {
     label: 'Cuchillo',
@@ -28,6 +36,10 @@ export const WEAPON_CATALOG = {
     automatic: false,
     range: 8,
     attack: ATTACKS.melee,
+    muzzle: { x: 0, y: 0, z: -0.3 },
+    flashScale: 0,
+    recoilPush: 0,
+    swingPush: 0.16,
   },
 };
 
