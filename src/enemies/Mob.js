@@ -98,7 +98,7 @@ export class Mob {
     );
 
     if (distance <= attackRange && this.#attackCooldown <= 0) {
-    this.#attackCooldown = MOB.respawnCooldown;
+      this.#attackCooldown = this.variant.attackCooldown;
       context.onHit(this.variant.damage);
     }
   }
