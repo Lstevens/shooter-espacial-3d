@@ -53,6 +53,11 @@ export const PLAYER = {
   fov: 70,
   near: 0.1,
   far: 200,
+  /**
+   * Punto de aparicion. El jugador reaparece aqui al reiniciar, no donde
+   * morreu. La arena va de -10 a 10 en X y Z: mantenlo dentro de ese margen.
+   */
+  spawn: { x: 0, z: 0 },
 };
 
 export const MOB = {

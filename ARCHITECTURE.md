@@ -73,6 +73,7 @@ classDiagram
         +PerspectiveCamera camera
         +number bobPhase
         +Vector3 origin
+        +reset()
         +update(delta, axis)
         +forward()
         +lock()

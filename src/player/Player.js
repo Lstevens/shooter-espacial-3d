@@ -25,7 +25,7 @@ export class Player {
       PLAYER.near,
       PLAYER.far,
     );
-    this.#camera.position.set(0, PLAYER.height, 0);
+    this.reset();
     scene.add(this.#camera);
 
     this.#controls = new PointerLockControls(this.#camera, domElement);
@@ -68,6 +68,16 @@ export class Player {
   onResize(width, height) {
     this.#camera.aspect = width / height;
     this.#camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Vuelve al punto de aparicion del config mirando al frente. Se usa al
+   * arrancar y en cada reinicio, para no reaparecer donde se murio.
+   */
+  reset() {
+    this.#camera.position.set(PLAYER.spawn.x, PLAYER.height, PLAYER.spawn.z);
+    this.#camera.rotation.set(0, 0, 0);
+    this.bobPhase = 0;
   }
 
   /** @param {import('../contracts.js').MovementAxis} axis */

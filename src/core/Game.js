@@ -44,6 +44,7 @@ export class Game {
 
   restart() {
     this.#state.reset();
+    this.#player.reset();
     this.#mobs.resetAll(this.#player.position);
     this.#weapons.setTargets(this.#mobs.targets);
     this.#hud.hideGameOver();
