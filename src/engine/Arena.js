@@ -1,46 +1,83 @@
 import * as THREE from 'three';
 import { ARENA, LIGHTS } from '../config.js';
 
-/** Escenario cerrado: escena, niebla, luces, suelo, rejilla y muros. */
+/**
+ * Escenario cerrado: escena, niebla, luces, suelo, rejilla y muros.
+ * Aplica una paleta a la vez: la camara trae su propia combinacion de
+ * colores y este modulo solo la pinta, no decide nada de juego.
+ */
 export class Arena {
   scene = new THREE.Scene();
+  #fog;
+  #sky;
+  #sun;
+  #groundMaterial;
+  #wallMaterial;
+  #grid;
 
   constructor() {
     this.scene.background = new THREE.Color(ARENA.background);
-    this.scene.fog = new THREE.Fog(ARENA.background, ARENA.fogNear, ARENA.fogFar);
+    this.#fog = new THREE.Fog(ARENA.background, ARENA.fogNear, ARENA.fogFar);
+    this.scene.fog = this.#fog;
     this.#addLights();
     this.#addGround();
     this.#addWalls();
+    this.applyPalette(ARENA);
+  }
+
+  /**
+   * Repinta el entorno para una camara sin reconstruir nada. Rejilla
+   * aparte: GridHelper pinta por atributos de vertice, asi que se recalcula
+   * en lugar de cambiarle el color a una material.
+   * @param {import('../config.js').Palette} palette
+   */
+  applyPalette(palette) {
+    this.scene.background.setHex(palette.background);
+    this.#fog.color.setHex(palette.background);
+    this.#sky.color.setHex(palette.skyColor);
+    this.#sun.color.setHex(palette.sunColor);
+    this.#groundMaterial.color.setHex(palette.groundColor);
+    this.#wallMaterial.color.setHex(palette.wallColor);
+    this.#replaceGrid(palette);
   }
 
   #addLights() {
-    this.scene.add(
-      new THREE.HemisphereLight(
-        LIGHTS.skyColor,
-        LIGHTS.groundColor,
-        LIGHTS.skyIntensity,
-      ),
+    this.#sky = new THREE.HemisphereLight(
+      LIGHTS.skyColor,
+      LIGHTS.groundColor,
+      LIGHTS.skyIntensity,
     );
-    const sun = new THREE.DirectionalLight(LIGHTS.sunColor, LIGHTS.sunIntensity);
-    sun.position.set(...LIGHTS.sunPosition);
-    this.scene.add(sun);
+    this.scene.add(this.#sky);
+    this.#sun = new THREE.DirectionalLight(LIGHTS.sunColor, LIGHTS.sunIntensity);
+    this.#sun.position.set(...LIGHTS.sunPosition);
+    this.scene.add(this.#sun);
   }
 
   #addGround() {
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(ARENA.size, ARENA.size),
-      new THREE.MeshStandardMaterial({ color: ARENA.groundColor, roughness: 1 }),
-    );
+    this.#groundMaterial = new THREE.MeshStandardMaterial({
+      color: ARENA.groundColor,
+      roughness: 1,
+    });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(ARENA.size, ARENA.size), this.#groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     this.scene.add(ground);
+  }
 
-    const grid = new THREE.GridHelper(ARENA.size, 20, ARENA.gridMain, ARENA.gridLines);
+  #replaceGrid(palette) {
+    if (this.#grid) {
+      this.scene.remove(this.#grid);
+      this.#grid.geometry.dispose();
+      this.#grid.material.dispose();
+      this.#grid = null;
+    }
+    const grid = new THREE.GridHelper(ARENA.size, 20, palette.gridMain, palette.gridLines);
     grid.position.y = 0.002;
     this.scene.add(grid);
+    this.#grid = grid;
   }
 
   #addWalls() {
-    const material = new THREE.MeshStandardMaterial({
+    this.#wallMaterial = new THREE.MeshStandardMaterial({
       color: ARENA.wallColor,
       side: THREE.DoubleSide,
     });
@@ -53,7 +90,7 @@ export class Arena {
     for (const { x = 0, z = 0, y } of placements) {
       const wall = new THREE.Mesh(
         new THREE.PlaneGeometry(ARENA.size, ARENA.wallHeight),
-        material,
+        this.#wallMaterial,
       );
       wall.position.set(x, ARENA.wallHeight / 2, z);
       wall.rotation.y = y;

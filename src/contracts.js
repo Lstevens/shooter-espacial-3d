@@ -44,6 +44,7 @@
  *
  * @typedef {Object} MobVariant
  * @property {string} label
+ * @property {number} [maxHp] si falta, gana MOB.maxHp
  * @property {number} color
  * @property {number} scale
  * @property {number} speed
@@ -60,6 +61,9 @@
  * @property {number} maxHp
  * @property {number} secondsLeft
  * @property {string} weaponLabel
+ * @property {number} stageIndex camara actual de la campania (1 a 5)
+ * @property {number} stageTotal total de camaras
+ * @property {string} stageLabel nombre de la camara
  */
 
 export {};

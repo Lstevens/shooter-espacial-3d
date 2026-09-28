@@ -13,6 +13,7 @@ import { MobSystem } from './enemies/MobSystem.js';
 import { EffectsSystem } from './fx/EffectsSystem.js';
 import { Hud } from './ui/Hud.js';
 import { GameState } from './core/GameState.js';
+import { Campaign } from './core/Campaign.js';
 import { Game } from './core/Game.js';
 
 const arena = new Arena();
@@ -21,6 +22,7 @@ const renderer = createRenderer(document.body);
 const clock = new THREE.Clock();
 
 const state = new GameState();
+const campaign = new Campaign();
 const hud = new Hud();
 const effects = new EffectsSystem({ scene: arena.scene });
 const player = new Player({ scene: arena.scene, domElement: renderer.domElement });
@@ -58,6 +60,8 @@ const game = new Game({
   effects,
   skybox,
   hud,
+  campaign,
+  arena,
 });
 
 player.on('lock', () => {

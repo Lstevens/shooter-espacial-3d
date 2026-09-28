@@ -50,6 +50,10 @@ export const PLAYER = {
   height: 1.7,
   edgeMargin: 0.5,
   bobRate: 10,
+  /** Impulso vertical inicial del salto, en metros por segundo. */
+  jumpSpeed: 6,
+  /** Caida libre. Con jumpSpeed 6 y gravity 18 el salto dura ~0.66 s. */
+  gravity: 18,
   fov: 70,
   near: 0.1,
   far: 200,
@@ -62,6 +66,9 @@ export const PLAYER = {
 
 export const MOB = {
   maxHp: 20,
+  /** Defaults. Cada etapa de CAMPAIGN los sobrescribe con sus valores. */
+  bossMaxHp: 100,
+  bossEscortCount: 2,
   count: 6,
   respawnDelay: 3,
   respawnCooldown: 1,
@@ -74,22 +81,48 @@ export const MOB = {
   hitFlashColor: 0x88ccff,
 };
 
+/**
+ * Variantes de enemigo. El color y la forma salen del modelo (ver MobFactory),
+ * aqui solo va lo de juego: escala, velocidad y cuando golpea.
+ * Si la variante define maxHp, ese valor gana sobre MOB.maxHp.
+ * El jefe conserva el balance ajustado: 8 de dano cada 2 s.
+ */
 export const MOB_VARIANTS = {
-  grunt: {
-    label: 'grunt',
-    color: 0x2f7fff,
+  soldier: {
+    label: 'soldier',
+    model: 'soldier',
     scale: 1,
     speed: 2.2,
     damage: 2,
     attackRange: 1.7,
     attackCooldown: 1,
   },
+  alien: {
+    label: 'alien',
+    model: 'alien',
+    scale: 1,
+    speed: 1.8,
+    damage: 2,
+    attackRange: 1.7,
+    attackCooldown: 1,
+  },
+  tank: {
+    label: 'tank',
+    model: 'tank',
+    scale: 1,
+    speed: 0.9,
+    damage: 2,
+    attackRange: 2.1,
+    attackCooldown: 1,
+  },
   boss: {
     label: 'boss',
-    color: 0x4a2fff,
-    scale: 2.2,
+    model: 'boss',
+    isBoss: true,
+    maxHp: MOB.bossMaxHp,
+    scale: 1,
     speed: 3.2,
-    damage: 8,
+    damage: 5,
     attackRange: 2.6,
     attackCooldown: 2,
   },
@@ -107,4 +140,137 @@ export const FX = {
 export const HIT_BURSTS = {
   bullet: { count: 12, speed: 4, color: 0xffaa33 },
   melee: { count: 6, speed: 3, color: 0x8fd3ff },
+};
+
+/**
+ * Campaña de 5 etapas. Cada una sube la dificultad: mas enemigos, mas
+ * rápidos, mas dano, mas escolta alrededor del jefe y un jefe mas duro.
+ * Derrotar al jefe de una etapa desbloquea la siguiente. La etapa 1 es la
+ * que arranca el jugador y sus numeros coinciden con los defaults de MOB.
+ *
+ * @typedef {Object} Stage
+ * @property {number} id
+ * @property {string} label nombre de la camara, se muestra en el HUD
+ * @property {number} mobCount enemigos normales en la arena
+ * @property {number} escortCount enemigos normales que quedan con el jefe
+ * @property {number} speedScale multiplicador de velocidad de los normales
+ * @property {number} damageScale multiplicador de dano de los normales
+ * @property {number} bossHp vida del jefe de la etapa
+ * @property {number} bossDamage dano por golpe del jefe
+ * @property {number} bossSpeed velocidad del jefe
+ * @property {Palette} palette colores con que Arena pinta la camara
+ *
+ * @typedef {Object} Palette color environment de la camara
+ * @property {number} background cielo y niebla
+ * @property {number} groundColor suelo
+ * @property {number} gridMain lineas principales de la rejilla
+ * @property {number} gridLines lineas menores de la rejilla
+ * @property {number} wallColor muros
+ * @property {number} skyColor luz de cielo (hemispherical)
+ * @property {number} sunColor luz del sol (direccional)
+ */
+export const CAMPAIGN = {
+  storageKey: 'fps-azul:campaign',
+  stages: [
+    {
+      id: 1,
+      label: 'Hangar',
+      mobCount: 6,
+      escortCount: 2,
+      speedScale: 1,
+      damageScale: 1,
+      bossHp: MOB.bossMaxHp,
+      bossDamage: 5,
+      bossSpeed: 3.2,
+      palette: {
+        background: ARENA.background,
+        groundColor: ARENA.groundColor,
+        gridMain: ARENA.gridMain,
+        gridLines: ARENA.gridLines,
+        wallColor: ARENA.wallColor,
+        skyColor: LIGHTS.skyColor,
+        sunColor: LIGHTS.sunColor,
+      },
+    },
+    {
+      id: 2,
+      label: 'Deposito',
+      mobCount: 7,
+      escortCount: 3,
+      speedScale: 1.1,
+      damageScale: 1.2,
+      bossHp: 130,
+      bossDamage: 6,
+      bossSpeed: 3.4,
+      palette: {
+        background: 0x140b04,
+        groundColor: 0x3a332a,
+        gridMain: 0x8a7a6f,
+        gridLines: 0x52493d,
+        wallColor: 0x665c4a,
+        skyColor: 0xffe8c8,
+        sunColor: 0xffb347,
+      },
+    },
+    {
+      id: 3,
+      label: 'Reactor',
+      mobCount: 8,
+      escortCount: 3,
+      speedScale: 1.2,
+      damageScale: 1.4,
+      bossHp: 160,
+      bossDamage: 7,
+      bossSpeed: 3.6,
+      palette: {
+        background: 0x031412,
+        groundColor: 0x203a38,
+        gridMain: 0x5fa8a0,
+        gridLines: 0x356b66,
+        wallColor: 0x3a6b66,
+        skyColor: 0xd4fff8,
+        sunColor: 0x59e6c8,
+      },
+    },
+    {
+      id: 4,
+      label: 'Crisol',
+      mobCount: 9,
+      escortCount: 4,
+      speedScale: 1.3,
+      damageScale: 1.6,
+      bossHp: 200,
+      bossDamage: 8,
+      bossSpeed: 3.8,
+      palette: {
+        background: 0x140602,
+        groundColor: 0x45302a,
+        gridMain: 0xc98f6a,
+        gridLines: 0x7a5242,
+        wallColor: 0x8a4a3a,
+        skyColor: 0xffd7b3,
+        sunColor: 0xff7f3f,
+      },
+    },
+    {
+      id: 5,
+      label: 'Nucleo',
+      mobCount: 10,
+      escortCount: 4,
+      speedScale: 1.4,
+      damageScale: 1.8,
+      bossHp: 240,
+      bossDamage: 9,
+      bossSpeed: 4,
+      palette: {
+        background: 0x0b0414,
+        groundColor: 0x352a45,
+        gridMain: 0x9a8ac9,
+        gridLines: 0x5a4d7a,
+        wallColor: 0x5f4d8a,
+        skyColor: 0xe8d8ff,
+        sunColor: 0xa86fff,
+      },
+    },
+  ],
 };

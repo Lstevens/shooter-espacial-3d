@@ -4,6 +4,7 @@ import { MouseInput } from './MouseInput.js';
 
 export const INPUT_EVENTS = {
   firePress: 'fire:press',
+  jumpPress: 'jump:press',
   weaponSelect: 'weapon:select',
   weaponCycle: 'weapon:cycle',
   lockRequest: 'lock:request',
@@ -18,6 +19,7 @@ export class InputController {
   #events = new EventEmitter();
   #keyboard = new KeyboardInput();
   #mouse;
+  #jumpQueued = false;
 
   constructor({ target, domElement, isLocked }) {
     this.#keyboard.attach(target);
@@ -30,6 +32,10 @@ export class InputController {
       this.#events.emit(INPUT_EVENTS.weaponCycle, direction),
     );
     this.#keyboard.on('weapon:select', (slot) => this.#events.emit(INPUT_EVENTS.weaponSelect, slot));
+    this.#keyboard.on('jump:press', () => {
+      this.#jumpQueued = true;
+      this.#events.emit(INPUT_EVENTS.jumpPress);
+    });
   }
 
   on(event, handler) {
@@ -43,5 +49,16 @@ export class InputController {
 
   get firing() {
     return this.#mouse.firing;
+  }
+
+  /**
+   * Salto pedido desde el ultimo fotograma. Se consume al leerlo, para que
+   * un salto pulsado no se repita mientras el juego corre.
+   * @returns {boolean}
+   */
+  consumeJump() {
+    const queued = this.#jumpQueued;
+    this.#jumpQueued = false;
+    return queued;
   }
 }

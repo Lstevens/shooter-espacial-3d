@@ -16,6 +16,8 @@ export class Player {
   #forward = new THREE.Vector3();
   #right = new THREE.Vector3();
   #direction = new THREE.Vector3();
+  #velocityY = 0;
+  #grounded = true;
   bobPhase = 0;
 
   constructor({ scene, domElement }) {
@@ -49,6 +51,10 @@ export class Player {
     return this.#controls.isLocked;
   }
 
+  get isGrounded() {
+    return this.#grounded;
+  }
+
   forward(target = new THREE.Vector3()) {
     return this.#camera.getWorldDirection(target);
   }
@@ -77,11 +83,17 @@ export class Player {
   reset() {
     this.#camera.position.set(PLAYER.spawn.x, PLAYER.height, PLAYER.spawn.z);
     this.#camera.rotation.set(0, 0, 0);
+    this.#velocityY = 0;
+    this.#grounded = true;
     this.bobPhase = 0;
   }
 
-  /** @param {import('../contracts.js').MovementAxis} axis */
-  update(delta, axis) {
+  /**
+   * @param {number} delta
+   * @param {import('../contracts.js').MovementAxis} axis
+   * @param {boolean} [jumpPressed] flanco del espacio, no el estado de la tecla
+   */
+  update(delta, axis, jumpPressed = false) {
     const forward = this.forward(this.#forward);
     forward.y = 0;
     forward.normalize();
@@ -97,9 +109,31 @@ export class Player {
       this.bobPhase += delta * PLAYER.bobRate;
     }
 
+    this.#updateVertical(delta, jumpPressed);
+
     const limit = ARENA.half - PLAYER.edgeMargin;
     this.#camera.position.x = THREE.MathUtils.clamp(this.#camera.position.x, -limit, limit);
     this.#camera.position.z = THREE.MathUtils.clamp(this.#camera.position.z, -limit, limit);
-    this.#camera.position.y = PLAYER.height;
+  }
+
+  /**
+   * Salto con gravedad contra el suelo del arena, que es el plano Y = 0: la
+   * camara representa los ojos, asi que el suelo esta a PLAYER.height.
+   * Sin suelo real que consultar, aterrizar es simplemente tocar ese plano.
+   */
+  #updateVertical(delta, jumpPressed) {
+    if (jumpPressed && this.#grounded) {
+      this.#velocityY = PLAYER.jumpSpeed;
+      this.#grounded = false;
+    }
+
+    this.#velocityY -= PLAYER.gravity * delta;
+    this.#camera.position.y += this.#velocityY * delta;
+
+    if (this.#camera.position.y <= PLAYER.height) {
+      this.#camera.position.y = PLAYER.height;
+      this.#velocityY = 0;
+      this.#grounded = true;
+    }
   }
 }
