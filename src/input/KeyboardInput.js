@@ -1,6 +1,7 @@
 import { EventEmitter } from '../core/EventEmitter.js';
 
 const WEAPON_SLOTS = { Digit1: 'pistol', Digit2: 'ak', Digit3: 'knife' };
+const JUMP_CODE = 'Space';
 
 export class KeyboardInput {
   #codes = new Set();
@@ -13,6 +14,11 @@ export class KeyboardInput {
       this.#codes.add(event.code);
       const slot = WEAPON_SLOTS[event.code];
       if (slot) this.#events.emit('weapon:select', slot);
+      if (event.code !== JUMP_CODE) return;
+      // El espacio tambien hace scroll y activa el boton que tenga el foco.
+      event.preventDefault();
+      // Flanco, no nivel: mantener pulsado no debe dar saltos encadenados.
+      if (!event.repeat) this.#events.emit('jump:press');
     };
     this.#onKeyUp = (event) => this.#codes.delete(event.code);
   }

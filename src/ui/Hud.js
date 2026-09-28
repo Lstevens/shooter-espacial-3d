@@ -1,6 +1,6 @@
 const ANNOUNCE_SECONDS = 2.5;
 
-/** Vista del DOM: vida, tiempo, arma, avisos, cruz y fin de partida. */
+/** Vista del DOM: vida, tiempo, camara, arma, avisos, cruz y fin de partida. */
 export class Hud {
   #elements;
   #announceTimer = 0;
@@ -10,12 +10,14 @@ export class Hud {
       hpFill: root.getElementById('hp-fill'),
       hpText: root.getElementById('hp-text'),
       weaponLabel: root.getElementById('weapon-label'),
+      stageLabel: root.getElementById('stage-label'),
       time: root.getElementById('time'),
       announce: root.getElementById('announce'),
       crosshair: root.getElementById('crosshair'),
       damageFlash: root.getElementById('damage-flash'),
       gameover: root.getElementById('gameover'),
       gameoverTitle: root.getElementById('gameover-title'),
+      gameoverText: root.getElementById('gameover-text'),
       restart: root.getElementById('restart'),
     };
   }
@@ -33,6 +35,8 @@ export class Hud {
     this.#elements.hpFill.style.width = `${(snapshot.hp / snapshot.maxHp) * 100}%`;
     this.#elements.hpText.textContent = `${snapshot.hp} / ${snapshot.maxHp}`;
     this.#elements.weaponLabel.textContent = snapshot.weaponLabel;
+    this.#elements.stageLabel.textContent =
+      `Camara ${snapshot.stageIndex}/${snapshot.stageTotal}: ${snapshot.stageLabel}`;
     const minutes = Math.floor(snapshot.secondsLeft / 60);
     const seconds = Math.floor(snapshot.secondsLeft % 60);
     this.#elements.time.textContent = `Tiempo: ${minutes}:${String(seconds).padStart(2, '0')}`;
@@ -59,9 +63,28 @@ export class Hud {
     if (this.#announceTimer <= 0) this.#elements.announce.style.opacity = '0';
   }
 
-  showGameOver(won) {
-    this.#elements.gameoverTitle.textContent = won ? '¡Ganaste el partido!' : 'Has muerto';
-    this.#elements.restart.textContent = won ? 'Jugar de nuevo' : 'Reintentar';
+  /**
+   * @param {{ won: boolean, stage: import('../config.js').Stage,
+   *  unlocked: (import('../config.js').Stage|null), complete: boolean,
+   *  total: number }} overview
+   */
+  showGameOver({ won, stage, unlocked, complete, total }) {
+    if (!won) {
+      this.#elements.gameoverTitle.textContent = 'Has muerto';
+      this.#elements.gameoverText.textContent =
+        `Camara ${stage.id}/${total}: ${stage.label}. El jefe sigue en pie.`;
+      this.#elements.restart.textContent = 'Reintentar';
+    } else if (complete) {
+      this.#elements.gameoverTitle.textContent = '¡Campaña completada!';
+      this.#elements.gameoverText.textContent =
+        `Derrotaste al jefe de la camara ${stage.id}/${total} (${stage.label}). Los 5 nucleos son tuyos.`;
+      this.#elements.restart.textContent = 'Reiniciar campaña';
+    } else {
+      this.#elements.gameoverTitle.textContent = '¡Cámara superada!';
+      this.#elements.gameoverText.textContent =
+        `Derrotaste al jefe de la camara ${stage.id}. Se desbloqueo camara ${unlocked.id}: ${unlocked.label}.`;
+      this.#elements.restart.textContent = 'Siguiente cámara';
+    }
     this.#elements.gameover.classList.add('show');
   }
 

@@ -1,33 +1,41 @@
 import * as THREE from 'three';
 import { MOB } from '../config.js';
-import { createMobMesh, registerEntity } from './MobFactory.js';
+import { createMobModel, registerEntity } from './MobFactory.js';
 
 const HIT_FLASH = 0x88ccff;
-const NO_EMISSIVE = 0x000000;
+const HIT_FLASH_TIME = 0.12;
+const ATTACK_ANIM_TIME = 0.4;
 
 /**
  * Enemigo. Implementa el contrato Target (group, position, isAlive,
  * takeDamage) que consumen las estrategias de ataque.
  * El jefe es la misma clase con otra variante: no necesita subclase.
+ * La geometria y la animacion de las piezas viven en MobFactory.
  */
 export class Mob {
-  #material;
+  #model;
+  #materials;
+  #baseEmissive;
   #hp;
   #maxHp;
   #dead = false;
   #respawnTimer = 0;
   #attackCooldown = 0;
   #hitFlash = 0;
+  #time = 0;
+  #attacking = false;
+  #attackTime = 0;
   #toTarget = new THREE.Vector3();
 
   constructor({ variant, maxHp = MOB.maxHp }) {
-    const { group, material } = createMobMesh(variant);
-    this.group = group;
-    this.#material = material;
+    this.#model = createMobModel(variant);
+    this.group = this.#model.group;
+    this.#materials = this.#model.materials;
+    this.#baseEmissive = this.#materials.map((material) => material.emissive.clone());
     this.variant = variant;
     this.#maxHp = maxHp;
     this.#hp = maxHp;
-    registerEntity(group, this);
+    registerEntity(this.group, this);
   }
 
   get position() {
@@ -45,8 +53,8 @@ export class Mob {
   takeDamage(amount) {
     if (this.#dead) return;
     this.#hp -= amount;
-    this.#material.emissive.setHex(HIT_FLASH);
-    this.#hitFlash = 1;
+    for (const material of this.#materials) material.emissive.setHex(HIT_FLASH);
+    this.#hitFlash = HIT_FLASH_TIME;
     if (this.#hp <= 0) this.kill();
   }
 
@@ -54,6 +62,8 @@ export class Mob {
     this.#hp = 0;
     this.#dead = true;
     this.#respawnTimer = MOB.respawnDelay;
+    this.#attacking = false;
+    this.#restoreEmissive();
     this.group.visible = false;
   }
 
@@ -62,7 +72,10 @@ export class Mob {
     this.#dead = false;
     this.#attackCooldown = MOB.respawnCooldown;
     this.#hitFlash = 0;
-    this.#material.emissive.setHex(NO_EMISSIVE);
+    this.#time = 0;
+    this.#attacking = false;
+    this.#attackTime = 0;
+    this.#restoreEmissive();
     this.group.visible = true;
     this.group.position.copy(position);
   }
@@ -75,31 +88,60 @@ export class Mob {
 
   /** @param {import('../contracts.js').AiContext} context */
   update(delta, context) {
-    if (this.#hitFlash > 0) {
-      this.#hitFlash -= delta;
-      if (this.#hitFlash <= 0) this.#material.emissive.setHex(NO_EMISSIVE);
+    this.#time += delta;
+    this.#attackCooldown -= delta;
+    this.#tickHitFlash(delta);
+
+    if (this.#attacking) {
+      this.#attackTime += delta;
+      if (this.#attackTime >= ATTACK_ANIM_TIME) this.#attacking = false;
     }
 
-    this.#attackCooldown -= delta;
     const toTarget = this.#toTarget.subVectors(context.targetPosition, this.group.position);
     toTarget.y = 0;
     const distance = toTarget.length();
     const { attackRange, speed } = this.variant;
 
-    if (distance < MOB.aggroRange && distance > attackRange) {
+    // Los modelos miran hacia -Z, asi que el yaw va invertido respecto a lookAt.
+    if (distance > 0.001) {
+      this.group.rotation.y = Math.atan2(-toTarget.x, -toTarget.z);
+    }
+
+    const moving = distance < MOB.aggroRange && distance > attackRange;
+    if (moving) {
       toTarget.normalize();
       this.group.position.addScaledVector(toTarget, speed * delta);
     }
 
-    this.group.lookAt(
-      context.targetPosition.x,
-      this.group.position.y,
-      context.targetPosition.z,
-    );
+    this.#model.animate(delta, {
+      time: this.#time,
+      moving,
+      attacking: this.#attacking,
+      attackTime: this.#attackTime,
+    });
 
     if (distance <= attackRange && this.#attackCooldown <= 0) {
       this.#attackCooldown = this.variant.attackCooldown;
+      this.#attacking = true;
+      this.#attackTime = 0;
       context.onHit(this.variant.damage);
     }
+  }
+
+  #tickHitFlash(delta) {
+    if (this.#hitFlash <= 0) return;
+    this.#hitFlash -= delta;
+    if (this.#hitFlash <= 0) this.#restoreEmissive();
+  }
+
+  /**
+   * Vuelve cada material a su emissive original. Sin esto el brillo de los
+   * ojos se perdia para siempre: el destello lo sobreescribe a azul y el
+   * reset lo dejaba en negro.
+   */
+  #restoreEmissive() {
+    this.#materials.forEach((material, index) => {
+      material.emissive.copy(this.#baseEmissive[index]);
+    });
   }
 }
