@@ -34,7 +34,7 @@ export const WEAPON_CATALOG = {
     damage: 25,
     fireRate: 0.3,
     automatic: false,
-    range: 8,
+    range: 6,
     attack: ATTACKS.melee,
     muzzle: { x: 0, y: 0, z: -0.3 },
     flashScale: 0,
@@ -45,4 +45,4 @@ export const WEAPON_CATALOG = {
 
 export const WEAPON_ORDER = ['pistol', 'ak', 'knife'];
 
-export const DEFAULT_WEAPON = 'pistol';
+export const DEFAULT_WEAPON = 'knife';
