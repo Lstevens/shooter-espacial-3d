@@ -12,6 +12,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 export class Player {
   #camera;
   #controls;
+  #collision;
   #events = new EventEmitter();
   #forward = new THREE.Vector3();
   #right = new THREE.Vector3();
@@ -20,7 +21,8 @@ export class Player {
   #grounded = true;
   bobPhase = 0;
 
-  constructor({ scene, domElement }) {
+  constructor({ scene, domElement, collision = null }) {
+    this.#collision = collision;
     this.#camera = new THREE.PerspectiveCamera(
       PLAYER.fov,
       window.innerWidth / window.innerHeight,
@@ -111,9 +113,21 @@ export class Player {
 
     this.#updateVertical(delta, jumpPressed);
 
-    const limit = ARENA.half - PLAYER.edgeMargin;
-    this.#camera.position.x = THREE.MathUtils.clamp(this.#camera.position.x, -limit, limit);
-    this.#camera.position.z = THREE.MathUtils.clamp(this.#camera.position.z, -limit, limit);
+    // Colision con el escenario y los enemigos; sin mundo cae al clamp simple.
+    if (this.#collision) {
+      for (let pass = 0; pass < 2; pass += 1) {
+        this.#collision.resolveEnvironment(
+          this.#camera.position,
+          PLAYER.radius,
+          this.#camera.position.y,
+        );
+        this.#collision.resolveActors(this.#camera.position, PLAYER.radius);
+      }
+    } else {
+      const limit = ARENA.half - PLAYER.edgeMargin;
+      this.#camera.position.x = THREE.MathUtils.clamp(this.#camera.position.x, -limit, limit);
+      this.#camera.position.z = THREE.MathUtils.clamp(this.#camera.position.z, -limit, limit);
+    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FX } from '../config.js';
+import { FX, HIT_BURSTS } from '../config.js';
 
 function makeGlowTexture(r1, r2, g1, g2, b1, b2) {
   const canvas = document.createElement('canvas');
@@ -41,6 +41,8 @@ function createPool(scene, texture, count) {
 export class EffectsSystem {
   #particles;
   #tracers;
+  #sparkEmitters = [];
+  #sparkTimer = 0;
 
   constructor({ scene }) {
     const spark = makeGlowTexture(255, 200, 170, 80, 30, 10);
@@ -68,6 +70,39 @@ export class EffectsSystem {
     }
   }
 
+  spawnShipDestructionBurst(position) {
+    const cfg = HIT_BURSTS.shipDestruction;
+    this.spawnBurst(position, cfg.count, cfg.speed, cfg.color);
+  }
+
+  /**
+   * Puntos calientes del pecio desde los que saltan chispas. Sin puntos
+   * no se genera ninguna: el sistema no inventa posiciones.
+   * @param {import('three').Vector3[]} points
+   */
+  setSparkEmitters(points) {
+    this.#sparkEmitters = points;
+  }
+
+  #spawnWreckSpark(delta) {
+    if (this.#sparkEmitters.length === 0) return;
+    this.#sparkTimer -= delta;
+    if (this.#sparkTimer > 0) return;
+    this.#sparkTimer = 0.25 + Math.random() * 0.55;
+
+    const source = this.#sparkEmitters[Math.floor(Math.random() * this.#sparkEmitters.length)];
+    const position = source.clone().add(
+      new THREE.Vector3(
+        (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.7,
+      ),
+    );
+    const count = 4 + Math.floor(Math.random() * 8);
+    const speed = 2 + Math.random() * 2.5;
+    this.spawnBurst(position, count, speed, 0xffa030);
+  }
+
   spawnTracer(from, to) {
     const direction = new THREE.Vector3().subVectors(to, from);
     const life = Math.max(0.03, direction.length() / FX.tracerSpeed);
@@ -85,6 +120,8 @@ export class EffectsSystem {
   }
 
   update(delta) {
+    this.#spawnWreckSpark(delta);
+
     for (const item of [...this.#particles, ...this.#tracers]) {
       if (item.life <= 0) continue;
       item.life -= delta;

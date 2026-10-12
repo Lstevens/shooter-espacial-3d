@@ -5,6 +5,7 @@ import { MouseInput } from './MouseInput.js';
 export const INPUT_EVENTS = {
   firePress: 'fire:press',
   jumpPress: 'jump:press',
+  savePress: 'save:press',
   weaponSelect: 'weapon:select',
   weaponCycle: 'weapon:cycle',
   lockRequest: 'lock:request',
@@ -36,6 +37,7 @@ export class InputController {
       this.#jumpQueued = true;
       this.#events.emit(INPUT_EVENTS.jumpPress);
     });
+    this.#keyboard.on('save:press', () => this.#events.emit(INPUT_EVENTS.savePress));
   }
 
   on(event, handler) {

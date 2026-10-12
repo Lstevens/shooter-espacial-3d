@@ -59,11 +59,12 @@
  * @typedef {Object} Snapshot lo que el HUD necesita para dibujarse
  * @property {number} hp
  * @property {number} maxHp
- * @property {number} secondsLeft
+ * @property {number} elapsed segundos sobrevividos en la camara actual
  * @property {string} weaponLabel
  * @property {number} stageIndex camara actual de la campania (1 a 5)
  * @property {number} stageTotal total de camaras
  * @property {string} stageLabel nombre de la camara
+ * @property {string} difficulty nivel de amenaza de la camara
  */
 
 export {};

@@ -2,13 +2,13 @@ export const ARENA = {
   size: 20,
   half: 10,
   wallHeight: 3,
-  background: 0x04060e,
+  background: 0x0a0d15,
   fogNear: 35,
   fogFar: 80,
-  groundColor: 0x2a2f3a,
-  gridMain: 0x6f7a8a,
-  gridLines: 0x3d4552,
-  wallColor: 0x4a5166,
+  groundColor: 0x3a3842,
+  gridMain: 0x7a8090,
+  gridLines: 0x4d525a,
+  wallColor: 0x52586a,
 };
 
 export const LIGHTS = {
@@ -40,14 +40,27 @@ export const SKY = {
 };
 
 export const GAME = {
-  duration: 60,
   bossAt: 40,
   maxHp: 20,
+};
+
+/**
+ * Puerta de salida. Aparece al derrotar al jefe de la etapa y se abre hacia
+ * los lados. Cruzarla carga la siguiente camara. Va montada en el muro del
+ * fondo, enfrente del punto de aparicion del jugador.
+ */
+export const DOOR = {
+  width: 4.2,
+  height: 3,
+  openTime: 1.6,
+  triggerRadius: 1.8,
 };
 
 export const PLAYER = {
   speed: 5,
   height: 1.7,
+  /** Radio del cuerpo para las colisiones con el escenario y los enemigos. */
+  radius: 0.35,
   edgeMargin: 0.5,
   bobRate: 10,
   /** Impulso vertical inicial del salto, en metros por segundo. */
@@ -66,6 +79,8 @@ export const PLAYER = {
 
 export const MOB = {
   maxHp: 20,
+  /** Radio del cuerpo para colisiones con el escenario y entre enemigos. */
+  radius: 0.42,
   /** Defaults. Cada etapa de CAMPAIGN los sobrescribe con sus valores. */
   bossMaxHp: 100,
   bossEscortCount: 2,
@@ -140,6 +155,7 @@ export const FX = {
 export const HIT_BURSTS = {
   bullet: { count: 12, speed: 4, color: 0xffaa33 },
   melee: { count: 6, speed: 3, color: 0x8fd3ff },
+  shipDestruction: { count: 30, speed: 6, color: 0xff9900 },
 };
 
 /**
@@ -151,6 +167,8 @@ export const HIT_BURSTS = {
  * @typedef {Object} Stage
  * @property {number} id
  * @property {string} label nombre de la camara, se muestra en el HUD
+ * @property {string} difficulty etiqueta de amenaza, se muestra al entrar
+ * @property {string} theme id del conjunto de props que monta Arena (ver scenes/props.js)
  * @property {number} mobCount enemigos normales en la arena
  * @property {number} escortCount enemigos normales que quedan con el jefe
  * @property {number} speedScale multiplicador de velocidad de los normales
@@ -175,6 +193,8 @@ export const CAMPAIGN = {
     {
       id: 1,
       label: 'Hangar',
+      difficulty: 'Amenaza baja',
+      theme: 'hangar',
       mobCount: 6,
       escortCount: 2,
       speedScale: 1,
@@ -194,7 +214,9 @@ export const CAMPAIGN = {
     },
     {
       id: 2,
-      label: 'Deposito',
+      label: 'Depósito',
+      difficulty: 'Amenaza moderada',
+      theme: 'depot',
       mobCount: 7,
       escortCount: 3,
       speedScale: 1.1,
@@ -215,6 +237,8 @@ export const CAMPAIGN = {
     {
       id: 3,
       label: 'Reactor',
+      difficulty: 'Amenaza alta',
+      theme: 'reactor',
       mobCount: 8,
       escortCount: 3,
       speedScale: 1.2,
@@ -235,6 +259,8 @@ export const CAMPAIGN = {
     {
       id: 4,
       label: 'Crisol',
+      difficulty: 'Amenaza crítica',
+      theme: 'crucible',
       mobCount: 9,
       escortCount: 4,
       speedScale: 1.3,
@@ -254,7 +280,9 @@ export const CAMPAIGN = {
     },
     {
       id: 5,
-      label: 'Nucleo',
+      label: 'Núcleo',
+      difficulty: 'Amenaza extrema',
+      theme: 'core',
       mobCount: 10,
       escortCount: 4,
       speedScale: 1.4,

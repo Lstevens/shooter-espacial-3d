@@ -4,9 +4,10 @@ import { CAMPAIGN } from '../config.js';
  * Progreso de la campania: cuantas etapas estan desbloqueadas. Sin three,
  * sin DOM y sinnocer el juego: solo indices y la etapa actual.
  *
- * El guardado usa localStorage, que puede fallar (modo privado, cuota llena,
- * almacenamiento bloqueado). Por eso todo pasa por #safeRead y #safeWrite:
- * si falla, la campania sigue funcionando en memoria.
+ * El guardado es manual: nada se escribe en localStorage salvo cuando el
+ * jugador lo pide con save(). El resto del tiempo la campania vive en
+ * memoria. El almacenamiento puede fallar (modo privado, cuota llena,
+ * bloqueado), por eso #safeRead y #safeWrite nunca rompen el juego.
  */
 export class Campaign {
   #stages;
@@ -43,20 +44,23 @@ export class Campaign {
 
   /**
    * Abre la siguiente etapa. Se llama una sola vez por partida, al derrotar
-   * al jefe.
+   * al jefe. No guarda: escribir en disco es decision del jugador.
    * @returns {import('../config.js').Stage|null} la etapa desbloqueada,
    *   o null si ya estaban todas abiertas
    */
   advance() {
     if (this.isComplete) return null;
     this.#unlocked += 1;
-    this.#write();
     return this.stage;
   }
 
   /** Vuelve a la primera etapa. Para empezar de cero la campaña. */
   reset() {
     this.#unlocked = 1;
+  }
+
+  /** Persiste el progreso actual. Es el unico punto de guardado. */
+  save() {
     this.#write();
   }
 

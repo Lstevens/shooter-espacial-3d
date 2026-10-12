@@ -10,12 +10,14 @@ src/
   contracts.js               contratos JSDoc compartidos
   core/     EventEmitter, GameState, Game
   engine/   Arena, SpaceSkybox, createRenderer
+            CollisionWorld, textures
   input/    InputController, KeyboardInput, MouseInput
   player/   Player
   weapons/  WeaponCatalog, WeaponFactory, ViewModel, WeaponSystem
             attacks/ HitscanAttack, MeleeAttack
   enemies/  Mob, MobFactory, MobSystem
   fx/       EffectsSystem
+  scenes/   Ship (pecio), props (themes), Door (salida)
   ui/       Hud
 ```
 
@@ -39,6 +41,7 @@ classDiagram
         +update(delta)
         +start()
         +restart()
+        +restartFromFirst()
         +endGame(won)
         +onPlayerDamage(amount)
     }
@@ -49,7 +52,6 @@ classDiagram
         +number elapsed
         +boolean isPlaying
         +boolean isFinished
-        +number secondsLeft
         +start()
         +pause()
         +finish(won)
@@ -57,11 +59,38 @@ classDiagram
         +reset()
     }
 
+    class CollisionWorld {
+        +setStatics(boxes)
+        +setDynamic(circles)
+        +resolveEnvironment(position, radius, bodyHeight)
+        +resolveActors(position, radius)
+    }
+
+    class Door {
+        +boolean isOpen
+        +open()
+        +update(delta)
+        +contains(position)
+        +dispose()
+    }
+
+    class Campaign {
+        +number unlocked
+        +number stageIndex
+        +Stage stage
+        +boolean isComplete
+        +advance()
+        +reset()
+        +save()
+    }
+
     class Arena {
         +Scene scene
-        +addLights()
-        +addGround()
-        +addWalls()
+        +Box3[] colliders
+        +Vector3[] sparkPoints
+        +setStage(stage)
+        +update(delta)
+        +applyPalette(palette)
     }
 
     class SpaceSkybox {
@@ -157,15 +186,23 @@ classDiagram
     class MobSystem {
         +Mob[] targets
         +boolean bossSpawned
+        +number kills
         +update(delta, context)
+        +setStage(stage, playerPosition)
         +spawnBoss(playerPosition)
-        +resetAll(playerPosition)
         +randomSpawnPosition(playerPosition, minDistance)
     }
 
     class EffectsSystem {
         +spawnBurst(position, count, speed, hex)
         +spawnTracer(from, to)
+        +spawnShipDestructionBurst(position)
+        +setSparkEmitters(points)
+        +update(delta)
+    }
+
+    class Ship {
+        +Vector3[] sparkPoints
         +update(delta)
     }
 
@@ -174,10 +211,12 @@ classDiagram
         +announce(text, seconds)
         +updateAnnounce(delta)
         +flashDamage()
+        +damageNumber(amount)
         +setCrosshair(active)
-        +showGameOver(won)
+        +showGameOver(overview)
         +hideGameOver()
         +onRestart(handler)
+        +onRestartFromFirst(handler)
     }
 
     class InputController {
@@ -191,6 +230,7 @@ classDiagram
     class EventEmitter
 
     Game *-- GameState : consulta
+    Game *-- Campaign : progreso
     Game o-- Player : mueve
     Game o-- WeaponSystem : actualiza
     Game o-- MobSystem : actualiza
@@ -198,6 +238,12 @@ classDiagram
     Mob ..> MobFactory : pide modelo y animacion
     Game o-- EffectsSystem : actualiza
     Game o-- SpaceSkybox : anima
+    Game o-- CollisionWorld : consulta colliders
+    Game o-- Door : abre y cruza
+    Game o-- Arena : monta stages y props
+    Arena o-- PropScene : decorado por theme
+    Arena ..> Ship : pecio del theme hangar
+    EffectsSystem ..> PropScene : chispas en sparkPoints
     Game o-- Hud : dibuja
     Game --> InputController : consulta
     Arena *-- Player : aloja camera
@@ -222,10 +268,12 @@ stateDiagram-v2
     playing --> paused : unlock / Esc
     paused --> playing : click / lock
     playing --> dead : playerHp 0
-    playing --> won : gameTime 60 s
+    playing --> playing : t 40 s dispara spawnBoss()
+    playing --> playing : boss derrotado -> puerta abierta
+    playing --> playing : cruza la puerta -> camara siguiente (vida restaurada)
+    playing --> won : cruza la puerta de la camara 5
     dead --> playing : restart()
     won --> playing : restart()
-    playing --> playing : t 40 s dispara spawnBoss()
 ```
 
 ## 4. Secuencia: disparo con arma de fuego
@@ -338,6 +386,58 @@ la camara (1.7) tapa la escena en vez de amenazar:
 - El tanque es intencionadamente bajo: hay que apuntar hacia abajo para
   acertarle, y esa es su diferencia de silueta con los demas.
 
+## Colisiones
+
+No hay motor de fisicas: `CollisionWorld` corrige posiciones en el plano del
+suelo (X,Z) contra dos tipos de geometria:
+
+- **Estaticas** (`Box3`): estructura de la nave (paneles, vigas) y el decorado
+  de la camara. Cajas por encima de la cabeza o mas bajas que un escalon
+  (`STEP_HEIGHT`) no bloquean.
+- **Dinamicas** (circulos): los enemigos vivos, publicados por `MobSystem`
+  cada frame para que el jugador no los atraviese.
+
+`Arena` y cada decorado exponen `colliders`; `Game` los vuelca al mundo en cada
+`setStage`. El jugador y los mobs empujan contra el entorno; los mobs se
+separan entre si para no apilarse. Sin mundo (pruebas o ausencia), `Player`
+cae al clamp simple anterior.
+
+## Decorado por themes
+
+Cada camara tiene un theme (`hangar`, `depot`, `reactor`, `crucible`, `core`).
+`Arena` solo monta el entorno fijo (piso, muros, techo, rejilla, estructura);
+`props.js` construye el decorado propio de la etapa y devuelve
+`{ colliders, sparkPoints, update, dispose }`. Al cambiar de camara se libera
+el decorado anterior y se monta el nuevo: por eso cada escenario se ve
+distinto, no solo con otra paleta.
+
+Las texturas de piso, muro y metal se generan en canvas (`textures.js`) con
+base clara para que `material.color` las tine con la paleta de la etapa. Son
+singletons compartidos, asi el recambio de camara no regenera canvases.
+
+## Pecio: nave estrellada
+
+`Ship` es el decorado del theme `hangar`. Construye un
+fuselaje partido contra el muro del fondo (con costillas y una brecha), vigas
+caidas, chatarra repartida en anillo y una nacela de motor reventada. Todo se
+apoya en los muros o se aleja del centro (`radio >= 4.5`) para no tapar el
+punto de aparicion del jugador ni su linea de tiro.
+
+- No conoce el juego ni los efectos: solo expone `sparkPoints`, las
+  coordenadas de mundo de la brecha y del motor.
+- `Game` conecta esos puntos con `EffectsSystem.setSparkEmitters`; sin puntos
+  no se generan chispas, asi el sistema de efectos no inventa posiciones.
+- Las brasas (materiales `emissive`) parpadean en `Ship.update`; no hay luces
+  reales, solo emision, para no encarecer el render.
+
+## Persistencia
+
+El progreso de la campania solo se escribe en `localStorage` cuando el jugador
+pulsa F5 (`Campaign.save()`). `advance()` y `reset()` trabajan en memoria: salir
+del juego sin guardar descarta el avance, que es el comportamiento pedido.
+`KeyboardInput` traduce F5 a `save:press` (con `preventDefault` para frenar la
+recarga del navegador); `main.js` escucha el evento y avisa por el HUD.
+
 ## Deuda tecnica
 
 - `MobSystem.randomSpawnPosition` se prueba por parametro, pero sigue siendo
@@ -351,5 +451,13 @@ la camara (1.7) tapa la escena en vez de amenazar:
 - `MeleeAttack` mide el cono contra el origen del enemigo (sus pies), no contra
   su centro de masa. Con un enemigo alto como el jefe hay que apuntar mas bajo
   de lo natural para acertar con el cuchillo.
+- Las colisiones aproximan cada prop con su caja orientada al mundo (Box3),
+  no con su forma real: un cilindro tumbado colisiona como una caja. Basta
+  para el prototipo, pero los bordes no son exactos.
+- Tras empujar al jugador fuera de un enemigo no se revalida contra las cajas
+  de nuevo; se hace una segunda pasada completa para reducir el clip, no una
+  resolucion por eje.
+- La gama de props usa geometria simple y compartida: no hay variedad de
+  mallas por theme, solo de disposicion. Suficiente para distinguir camaras.
 - Sin pruebas en el repositorio: la verificacion se hizo con un script temporal
   de humo sobre `GameState`, `Mob`, `MobSystem`, `WeaponSystem` y los ataques.
