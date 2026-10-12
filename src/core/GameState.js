@@ -16,10 +16,6 @@ export class GameState {
     return this.status === 'dead' || this.status === 'won';
   }
 
-  get secondsLeft() {
-    return Math.max(0, GAME.duration - this.elapsed);
-  }
-
   start() {
     this.status = 'playing';
   }

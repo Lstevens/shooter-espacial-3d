@@ -2,6 +2,7 @@ import { EventEmitter } from '../core/EventEmitter.js';
 
 const WEAPON_SLOTS = { Digit1: 'pistol', Digit2: 'ak', Digit3: 'knife' };
 const JUMP_CODE = 'Space';
+const SAVE_CODE = 'F5';
 
 export class KeyboardInput {
   #codes = new Set();
@@ -14,6 +15,12 @@ export class KeyboardInput {
       this.#codes.add(event.code);
       const slot = WEAPON_SLOTS[event.code];
       if (slot) this.#events.emit('weapon:select', slot);
+      if (event.code === SAVE_CODE) {
+        // F5 recarga la pagina en el navegador: hay que frenarlo.
+        event.preventDefault();
+        if (!event.repeat) this.#events.emit('save:press');
+        return;
+      }
       if (event.code !== JUMP_CODE) return;
       // El espacio tambien hace scroll y activa el boton que tenga el foco.
       event.preventDefault();

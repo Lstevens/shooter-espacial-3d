@@ -26,15 +26,18 @@ export class Mob {
   #attacking = false;
   #attackTime = 0;
   #toTarget = new THREE.Vector3();
+  #next = new THREE.Vector3();
+  #onKilled;
 
-  constructor({ variant, maxHp = MOB.maxHp }) {
-    this.#model = createMobModel(variant);
+  constructor({ variant, maxHp = MOB.maxHp, level, onKilled }) {
+    this.#model = createMobModel(variant, level);
     this.group = this.#model.group;
     this.#materials = this.#model.materials;
     this.#baseEmissive = this.#materials.map((material) => material.emissive.clone());
     this.variant = variant;
     this.#maxHp = maxHp;
     this.#hp = maxHp;
+    this.#onKilled = onKilled;
     registerEntity(this.group, this);
   }
 
@@ -55,7 +58,11 @@ export class Mob {
     this.#hp -= amount;
     for (const material of this.#materials) material.emissive.setHex(HIT_FLASH);
     this.#hitFlash = HIT_FLASH_TIME;
-    if (this.#hp <= 0) this.kill();
+    if (this.#hp <= 0) {
+      this.kill();
+      // Solo cuenta la muerte por dano del jugador, no el retiro de escolta.
+      this.#onKilled?.();
+    }
   }
 
   kill() {
@@ -110,7 +117,9 @@ export class Mob {
     const moving = distance < MOB.aggroRange && distance > attackRange;
     if (moving) {
       toTarget.normalize();
-      this.group.position.addScaledVector(toTarget, speed * delta);
+      this.#next.copy(this.group.position).addScaledVector(toTarget, speed * delta);
+      context.collision?.resolveEnvironment(this.#next, MOB.radius, this.group.position.y + 1.8);
+      this.group.position.copy(this.#next);
     }
 
     this.#model.animate(delta, {

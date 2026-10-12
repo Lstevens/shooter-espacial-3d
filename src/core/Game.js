@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 import { GAME } from '../config.js';
+import { Door } from '../scenes/Door.js';
 
 const MAX_DELTA = 0.05;
 
 /**
  * Orquestador: decide el orden de actualizacion y las transiciones de
  * la partida. No dibuja nada ni conoce detalles de ningun subsistema.
- * La campania vive aparte; aqui solo se pregunta cual es la etapa actual
- * y se avanza una casilla cuando el jefe cae.
+ *
+ * Objetivo: derrotar al jefe de la camara. Al caer, aparece una puerta; al
+ * cruzarla se restaura la vida y se carga la siguiente camara. Cruzar la
+ * puerta de la ultima camara gana la partida.
  */
 export class Game {
   #scene;
@@ -24,9 +27,12 @@ export class Game {
   #hud;
   #campaign;
   #arena;
+  #collision;
+  #door = null;
+  #exitReady = false;
   #frame = () => this.#tick();
 
-  constructor({ scene, renderer, camera, state, player, input, weapons, mobs, effects, skybox, hud, campaign, arena }) {
+  constructor({ scene, renderer, camera, state, player, input, weapons, mobs, effects, skybox, hud, campaign, arena, collision }) {
     this.#scene = scene;
     this.#renderer = renderer;
     this.#camera = camera;
@@ -40,6 +46,7 @@ export class Game {
     this.#hud = hud;
     this.#campaign = campaign;
     this.#arena = arena;
+    this.#collision = collision;
   }
 
   start() {
@@ -52,6 +59,16 @@ export class Game {
     // Si la ultima partida completo la campania, repetir no tiene sentido:
     // el boto de reinicio vuelve a empezar desde la primera camara.
     if (this.#campaign.isComplete) this.#campaign.reset();
+    this.#restartRun();
+  }
+
+  /** Reinicia desde la camara 1 sin importar el progreso de la campania. */
+  restartFromFirst() {
+    this.#campaign.reset();
+    this.#restartRun();
+  }
+
+  #restartRun() {
     this.#state.reset();
     this.#player.reset();
     this.#loadStage();
@@ -65,6 +82,7 @@ export class Game {
     if (!this.#state.isPlaying) return;
     const died = this.#state.damage(amount);
     this.#hud.flashDamage();
+    this.#hud.damageNumber(amount);
     this.#hud.render(this.#snapshot());
     if (died) this.endGame(false);
   }
@@ -81,6 +99,8 @@ export class Game {
       unlocked,
       complete: won && unlocked === null,
       total: this.#campaign.total,
+      kills: this.#mobs.kills,
+      elapsed: this.#state.elapsed,
     });
   }
 
@@ -96,10 +116,15 @@ export class Game {
       this.#mobs.update(delta, { targetPosition: this.#player.position });
       this.#updateTimer(delta);
       this.#weapons.update(delta);
-      // Derrotar al jefe final gana la partida, sin esperar al reloj.
-      if (this.#mobs.bossDefeated) this.endGame(true);
+      // Derrotar al jefe abre la salida; cruzarla cambia de camara.
+      if (this.#mobs.bossDefeated && !this.#exitReady) this.#openExit();
+      if (this.#door) {
+        this.#door.update(delta);
+        if (this.#door.contains(this.#player.position)) this.#advanceStage();
+      }
     }
     this.#effects.update(delta);
+    this.#arena.update(delta);
     this.#skybox?.update(delta, this.#clock.elapsedTime);
     this.#hud.updateAnnounce(delta);
     this.#hud.render(this.#snapshot());
@@ -109,17 +134,49 @@ export class Game {
     this.#state.elapsed += delta;
     if (!this.#mobs.bossSpawned && this.#state.elapsed >= GAME.bossAt) {
       this.#mobs.spawnBoss(this.#player.position);
-      this.#hud.announce('¡Apareció el jefe final!');
+      this.#hud.announce('Alerta: firma hostil de mando detectada');
     }
-    if (this.#state.elapsed >= GAME.duration) this.endGame(true);
+  }
+
+  /** Monta la puerta de salida y la abre. */
+  #openExit() {
+    this.#exitReady = true;
+    this.#door = new Door({ scene: this.#scene });
+    this.#door.open();
+    this.#hud.announce('Núcleo destruido · acceso abierto');
+  }
+
+  /** Cruza la puerta: restaura vida y carga la siguiente camara, o gana. */
+  #advanceStage() {
+    this.#destroyDoor();
+    const unlocked = this.#campaign.advance();
+    if (unlocked === null) {
+      this.endGame(true);
+      return;
+    }
+    this.#state.hp = GAME.maxHp;
+    this.#state.elapsed = 0;
+    this.#player.reset();
+    this.#loadStage();
+  }
+
+  #destroyDoor() {
+    this.#door?.dispose();
+    this.#door = null;
   }
 
   #loadStage() {
     const stage = this.#campaign.stage;
-    this.#arena.applyPalette(stage.palette);
+    this.#destroyDoor();
+    this.#exitReady = false;
+    this.#arena.setStage(stage);
+    this.#collision?.setStatics(this.#arena.colliders);
     this.#mobs.setStage(stage, this.#player.position);
     this.#weapons.setTargets(this.#mobs.targets);
-    this.#hud.announce(`Camara ${stage.id}/${this.#campaign.total}: ${stage.label}`);
+    this.#effects.setSparkEmitters(this.#arena.sparkPoints);
+    this.#hud.announce(
+      `Cámara ${stage.id}/${this.#campaign.total}: ${stage.label} · ${stage.difficulty}`,
+    );
   }
 
   #snapshot() {
@@ -127,11 +184,12 @@ export class Game {
     return {
       hp: this.#state.hp,
       maxHp: GAME.maxHp,
-      secondsLeft: this.#state.secondsLeft,
+      elapsed: this.#state.elapsed,
       weaponLabel: this.#weapons.currentLabel,
       stageIndex: stage.id,
       stageTotal: this.#campaign.total,
       stageLabel: stage.label,
+      difficulty: stage.difficulty,
     };
   }
 }

@@ -35,36 +35,68 @@ const glow = (color, intensity) =>
  * piezas del mismo enemigo (asi el destello de impacto alcanza a todas) pero
  * nunca entre enemigos, asi un golpe no ilumina a los demas.
  */
-function soldierPalette() {
-  return {
+function soldierPalette(level) {
+  const base = {
     armor: metal(0x1d6fa8, 0.75, 0.32),
     dark: metal(0x1b2530, 0.85, 0.35),
     glow: glow(0x35a8ff, 3.5),
   };
+  if (level >= 3) {
+    base.armor = metal(0x169f8e, 0.75, 0.32);
+    base.glow = glow(0x25c7ff, 3.5 + (level - 3) * 0.2);
+  }
+  if (level >= 5) {
+    base.dark = metal(0x0f1a27, 0.85, 0.35);
+  }
+  return base;
 }
 
-function alienPalette() {
-  return {
+function alienPalette(level) {
+  const base = {
     armor: metal(0x6b8c3a, 0.25, 0.72),
     dark: metal(0x2b3a1f, 0.2, 0.8),
     glow: glow(0x5cff3c, 3),
   };
+  if (level >= 3) {
+    base.armor = metal(0x5a7c2f, 0.25, 0.72);
+    base.glow = glow(0x7cff5c, 3 + (level - 3) * 0.2);
+  }
+  if (level >= 5) {
+    base.dark = metal(0x1f2a15, 0.2, 0.8);
+  }
+  return base;
 }
 
-function tankPalette() {
-  return {
+function tankPalette(level) {
+  const base = {
     armor: metal(0x9c3226, 0.8, 0.32),
     dark: metal(0x2c1a18, 0.8, 0.38),
     glow: glow(0xff4a22, 3.5),
   };
+  if (level >= 3) {
+    base.armor = metal(0x8c2216, 0.8, 0.32);
+    base.glow = glow(0xff5a32, 3.5 + (level - 3) * 0.2);
+  }
+  if (level >= 5) {
+    base.dark = metal(0x1c0a0f, 0.8, 0.38);
+  }
+  return base;
 }
 
-function bossPalette() {
-  return {
+function bossPalette(level) {
+  const base = {
     armor: metal(0x14141f, 0.95, 0.28),
     dark: metal(0x08080d, 0.9, 0.35),
     glow: glow(0x9b3cff, 4.5),
   };
+  if (level >= 2) {
+    base.armor = metal(0x0f1428, 0.95, 0.28);
+    base.glow = glow(0xa03cff, 4.5 + (level - 2) * 0.3);
+  }
+  if (level >= 4) {
+    base.dark = metal(0x040814, 0.9, 0.35);
+  }
+  return base;
 }
 
 /** Brazos hacia delante, como sosteniendo un arma: es la pose base. */
@@ -145,8 +177,8 @@ function limb(radius, length, material) {
   return new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 3, 10), material);
 }
 
-function buildSoldier() {
-  const p = soldierPalette();
+function buildSoldier(level) {
+  const p = soldierPalette(level);
   const group = new THREE.Group();
   const parts = {};
 
@@ -233,8 +265,8 @@ function buildSoldier() {
   };
 }
 
-function buildAlien() {
-  const p = alienPalette();
+function buildAlien(level) {
+  const p = alienPalette(level);
   const group = new THREE.Group();
   const parts = {};
 
@@ -336,8 +368,8 @@ function buildAlien() {
   };
 }
 
-function buildTank() {
-  const p = tankPalette();
+function buildTank(level) {
+  const p = tankPalette(level);
   const group = new THREE.Group();
   const parts = {};
 
@@ -423,8 +455,8 @@ function buildTank() {
   };
 }
 
-function buildBoss() {
-  const p = bossPalette();
+function buildBoss(level) {
+  const p = bossPalette(level);
   const group = new THREE.Group();
   const parts = {};
 
@@ -534,10 +566,12 @@ const BUILDERS = {
  * Construye el modelo de la variante y aplica su escala.
  * @returns {{ group: THREE.Group, parts: object, materials: THREE.Material[], animate: Function }}
  */
-export function createMobModel(variant) {
+export function createMobModel(variant, level) {
   const build = BUILDERS[variant.model] ?? BUILDERS.soldier;
-  const model = build();
+  const model = build(level);
   model.group.scale.setScalar(variant.scale);
+  // Vary scale slightly per level to make mobs look different
+  model.group.scale.multiplyScalar(1 + (level - 1) * 0.05);
   return model;
 }
 

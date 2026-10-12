@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Arena } from './engine/Arena.js';
 import { SpaceSkybox } from './engine/SpaceSkybox.js';
 import { createRenderer } from './engine/createRenderer.js';
+import { CollisionWorld } from './engine/CollisionWorld.js';
 import { Player } from './player/Player.js';
 import { InputController, INPUT_EVENTS } from './input/InputController.js';
 import { ViewModel } from './weapons/ViewModel.js';
@@ -25,11 +26,17 @@ const state = new GameState();
 const campaign = new Campaign();
 const hud = new Hud();
 const effects = new EffectsSystem({ scene: arena.scene });
-const player = new Player({ scene: arena.scene, domElement: renderer.domElement });
+const collision = new CollisionWorld();
+const player = new Player({
+  scene: arena.scene,
+  domElement: renderer.domElement,
+  collision,
+});
 
 const mobs = new MobSystem({
   scene: arena.scene,
   onPlayerDamage: (amount) => game.onPlayerDamage(amount),
+  collision,
 });
 
 const viewModel = new ViewModel({ camera: player.camera });
@@ -62,6 +69,7 @@ const game = new Game({
   hud,
   campaign,
   arena,
+  collision,
 });
 
 player.on('lock', () => {
@@ -88,6 +96,13 @@ input.on(INPUT_EVENTS.weaponSelect, (slot) => weapons.select(slot));
 input.on(INPUT_EVENTS.weaponCycle, (direction) => weapons.cycle(direction));
 
 hud.onRestart(() => game.restart());
+
+hud.onRestartFromFirst(() => game.restartFromFirst());
+
+input.on(INPUT_EVENTS.savePress, () => {
+  campaign.save();
+  hud.announce(`Progreso guardado: camara ${campaign.stage.id}/${campaign.total}`);
+});
 
 window.addEventListener('resize', () => {
   player.onResize(window.innerWidth, window.innerHeight);
