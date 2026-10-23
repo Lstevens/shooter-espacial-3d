@@ -54,7 +54,22 @@ export const DOOR = {
   height: 3,
   openTime: 1.6,
   triggerRadius: 1.8,
+  /** Margen a cada lado del vano que ningun prop ni panel debe invadir. */
+  clearance: 1.2,
+  /** Profundidad de la franja libre frente al vano, desde el muro del fondo. */
+  laneDepth: 4,
 };
+
+/**
+ * true si el punto (x, z) cae en la franja frente al vano de salida. Arena,
+ * Ship y los props la consultan para no montar nada que tape la puerta.
+ * @param {number} x
+ * @param {number} z
+ */
+export function inExitLane(x, z) {
+  const half = DOOR.width / 2 + DOOR.clearance;
+  return Math.abs(x) <= half && z <= -ARENA.half + DOOR.laneDepth;
+}
 
 export const PLAYER = {
   speed: 5,
@@ -94,6 +109,11 @@ export const MOB = {
   spawnRingSpread: 6.5,
   spawnFallbackInner: 8,
   hitFlashColor: 0x88ccff,
+  /** Navegacion: cuanto mira hacia delante al esquivar y pasos del sondeo. */
+  navLookahead: 1.4,
+  navSteps: 3,
+  /** El sondeo usa un cuerpo algo mas fino para no bloquearse al rozar. */
+  navProbeScale: 0.9,
 };
 
 /**
