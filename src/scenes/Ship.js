@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ARENA } from '../config.js';
+import { ARENA, DOOR, inExitLane } from '../config.js';
 
 const HALF = ARENA.half;
 const EMBER_COLOR = 0xff7a1f;
@@ -68,27 +68,41 @@ export class Ship {
     this.#sparkPoints.length = 0;
   }
 
-  /** Fuselaje partido apoyado en el muro del fondo, con costillas y una brecha. */
+  /**
+   * Fuselaje partido apoyado en el muro del fondo, con costillas y una brecha.
+   * El casco se parte en dos mitades con un hueco central alineado con el
+   * vano de salida: la puerta queda a la vista y el jugador puede cruzarla.
+   */
   #buildFuselage() {
     const hull = metal(0x3a2f28, 0.7, 0.62);
     const rib = metal(HULL_DARK, 0.85, 0.45);
     const backZ = -HALF + 2.2;
 
-    const fuselage = new THREE.Mesh(new THREE.BoxGeometry(9, 2.6, 3.2), hull);
-    fuselage.position.set(0, 0.9, backZ);
-    fuselage.rotation.set(0.05, 0, 0.08);
-    this.#group.add(fuselage);
-    this.#track(fuselage);
+    const totalHalf = 4.5;
+    const gapHalf = DOOR.width / 2 + 0.6;
+    const segmentWidth = totalHalf - gapHalf;
+    const segmentCenter = (totalHalf + gapHalf) / 2;
 
-    for (let i = 0; i < 5; i += 1) {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.1, 3.6), rib);
-      frame.position.set(-3.6 + i * 1.8, 0.85, backZ);
-      frame.rotation.z = 0.08;
-      this.#group.add(frame);
-      this.#track(frame);
+    for (const side of [-1, 1]) {
+      const segment = new THREE.Mesh(
+        new THREE.BoxGeometry(segmentWidth, 2.6, 3.2),
+        hull,
+      );
+      segment.position.set(side * segmentCenter, 0.9, backZ);
+      segment.rotation.set(0.05, 0, side * 0.08);
+      this.#group.add(segment);
+      this.#track(segment);
+
+      for (const offset of [-0.5, 0.4]) {
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.1, 3.6), rib);
+        frame.position.set(side * (segmentCenter + offset), 0.85, backZ);
+        frame.rotation.z = side * 0.08;
+        this.#group.add(frame);
+        this.#track(frame);
+      }
     }
 
-    const gashPos = new THREE.Vector3(-2.2, 1.1, backZ + 1.6);
+    const gashPos = new THREE.Vector3(-3.6, 1.1, backZ + 1.6);
     const gash = new THREE.Mesh(
       new THREE.BoxGeometry(1.8, 0.9, 0.4),
       new THREE.MeshStandardMaterial({
@@ -109,6 +123,11 @@ export class Ship {
   #buildDebris() {
     const colors = [0x4a3a2e, 0x5a4636, 0x39393f, 0x2e2a26, 0x6a5a4a];
     for (let i = 0; i < 16; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 4.5 + Math.random() * (HALF - 5.5);
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      if (inExitLane(x, z)) continue;
       const size = 0.4 + Math.random() * 1.1;
       const geometry = new THREE.BoxGeometry(
         size,
@@ -121,9 +140,7 @@ export class Ship {
         0.5 + Math.random() * 0.4,
       );
       const piece = new THREE.Mesh(geometry, material);
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 4.5 + Math.random() * (HALF - 5.5);
-      piece.position.set(Math.cos(angle) * radius, size * 0.2, Math.sin(angle) * radius);
+      piece.position.set(x, size * 0.2, z);
       piece.rotation.set(Math.random() * 0.6, Math.random() * Math.PI * 2, Math.random() * 0.6);
       this.#group.add(piece);
       this.#track(piece);

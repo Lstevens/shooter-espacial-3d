@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ARENA } from '../config.js';
+import { ARENA, inExitLane } from '../config.js';
 import { getMetalTexture } from '../engine/textures.js';
 import { Ship } from './Ship.js';
 
@@ -83,6 +83,9 @@ function buildDepot(scene) {
   for (let i = 0; i < 12; i += 1) {
     const angle = randomAngle();
     const radius = 4.5 + Math.random() * (HALF - 6);
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    if (inExitLane(x, z)) continue;
     const w = 1.1 + Math.random() * 1.2;
     const h = 0.9 + Math.random() * 1.1;
     const d = 1.1 + Math.random() * 1.2;
@@ -90,7 +93,7 @@ function buildDepot(scene) {
       new THREE.BoxGeometry(w, h, d),
       metal(colors[i % colors.length], 0.55, 0.55),
     );
-    crate.position.set(Math.cos(angle) * radius, h / 2, Math.sin(angle) * radius);
+    crate.position.set(x, h / 2, z);
     crate.rotation.y = randomAngle();
     props.add(crate);
 
@@ -124,6 +127,7 @@ function buildReactor(scene) {
     const radius = 6.2;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
+    if (inExitLane(x, z)) continue;
     const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 2.8, 12), pillarMat);
     pillar.position.set(x, 1.4, z);
     props.add(pillar);
@@ -154,11 +158,14 @@ function buildCrucible(scene) {
   for (let i = 0; i < 8; i += 1) {
     const angle = (i / 8) * Math.PI * 2 + 0.3;
     const radius = 5 + Math.random() * 3;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    if (inExitLane(x, z)) continue;
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(1.4 + Math.random(), 0.7, 1.2 + Math.random()),
       rockMat,
     );
-    block.position.set(Math.cos(angle) * radius, 0.35, Math.sin(angle) * radius);
+    block.position.set(x, 0.35, z);
     block.rotation.y = randomAngle();
     props.add(block);
   }
@@ -166,9 +173,12 @@ function buildCrucible(scene) {
   for (let i = 0; i < 3; i += 1) {
     const angle = (i / 3) * Math.PI * 2 + 1.1;
     const radius = 7.2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    if (inExitLane(x, z)) continue;
     const pitMat = glow(EMBER_COLOR, 1.8);
     const pit = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 0.25, 16), pitMat);
-    pit.position.set(Math.cos(angle) * radius, 0.12, Math.sin(angle) * radius);
+    pit.position.set(x, 0.12, z);
     props.add(pit, false);
     props.ember(pitMat);
     props.sparkPoints.push(pit.position.clone());
@@ -186,11 +196,14 @@ function buildCore(scene) {
   for (let i = 0; i < count; i += 1) {
     const angle = (i / count) * Math.PI * 2;
     const radius = 6.4;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    if (inExitLane(x, z)) continue;
     const pillar = new THREE.Mesh(
       new THREE.BoxGeometry(0.8, 3, 0.8),
       pillarMat,
     );
-    pillar.position.set(Math.cos(angle) * radius, 1.5, Math.sin(angle) * radius);
+    pillar.position.set(x, 1.5, z);
     props.add(pillar);
 
     const beaconMat = glow(0xa86fff, 2.6);

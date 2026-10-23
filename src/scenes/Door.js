@@ -2,17 +2,54 @@ import * as THREE from 'three';
 import { ARENA, DOOR } from '../config.js';
 
 /**
+ * Superficie del portal: espiral de energia animada que se dibuja sobre el
+ * vano. Aditiva y sin escribir profundidad para que brille sin tapar nada.
+ */
+const PORTAL_VERTEX = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const PORTAL_FRAGMENT = `
+  uniform float uTime;
+  uniform float uOpacity;
+  uniform vec3 uColorA;
+  uniform vec3 uColorB;
+  varying vec2 vUv;
+  void main() {
+    vec2 p = vUv - 0.5;
+    float r = length(p) * 2.0;
+    float angle = atan(p.y, p.x);
+    float spiral = sin(angle * 4.0 + r * 9.0 - uTime * 3.5) * 0.5 + 0.5;
+    float rings = sin(r * 16.0 - uTime * 5.0) * 0.5 + 0.5;
+    float energy = spiral * 0.6 + rings * 0.4;
+    float core = pow(max(1.0 - r, 0.0), 4.0);
+    float edge = 1.0 - smoothstep(0.35, 1.05, r);
+    vec3 color = mix(uColorA, uColorB, energy) + uColorB * core * 0.6;
+    gl_FragColor = vec4(color, energy * edge * uOpacity);
+  }
+`;
+
+/**
  * Puerta de salida de la camara. Aparece oculta y, al abrirse, dos paneles
- * se deslizan hacia los lados. No decide nada de juego: Game la crea al caer
- * el jefe y consulta contains() para saber si el jugador cruzo.
+ * se deslizan hacia los lados y deja ver un portal de energia. No decide nada
+ * de juego: Game la crea al caer el jefe y consulta contains() para saber si
+ * el jugador cruzo.
  */
 export class Door {
   #scene;
   #group;
   #left;
   #right;
+  #portal;
+  #portalLight;
+  #portalUniforms;
   #disposables = [];
   #open = 0;
+  #time = 0;
   #state = 'hidden';
 
   constructor({ scene }) {
@@ -90,22 +127,67 @@ export class Door {
       this.#group.add(strip);
       this.#disposables.push(strip.geometry, strip.material);
     }
+
+    this.#buildPortal();
+  }
+
+  /**
+   * Portal detras de los paneles: se revela a medida que se abren. La
+   * opacidad y la luz siguen el progreso de apertura, asi que el vano
+   * "se enciende" en vez de aparecer de golpe.
+   */
+  #buildPortal() {
+    this.#portalUniforms = {
+      uTime: { value: 0 },
+      uOpacity: { value: 0 },
+      uColorA: { value: new THREE.Color(0x0a1c33) },
+      uColorB: { value: new THREE.Color(0x5fe6ff) },
+    };
+    const material = new THREE.ShaderMaterial({
+      uniforms: this.#portalUniforms,
+      vertexShader: PORTAL_VERTEX,
+      fragmentShader: PORTAL_FRAGMENT,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const geometry = new THREE.PlaneGeometry(DOOR.width, DOOR.height);
+    this.#portal = new THREE.Mesh(geometry, material);
+    this.#portal.position.set(0, DOOR.height / 2, -0.08);
+    this.#portal.visible = false;
+    this.#group.add(this.#portal);
+    this.#disposables.push(geometry, material);
+
+    this.#portalLight = new THREE.PointLight(0x4fd8ff, 0, 8, 2);
+    this.#portalLight.position.set(0, DOOR.height / 2, 0.9);
+    this.#group.add(this.#portalLight);
   }
 
   /** Muestra la puerta y empieza la apertura. */
   open() {
     if (this.#state !== 'hidden') return;
     this.#group.visible = true;
+    this.#portal.visible = true;
     this.#state = 'opening';
   }
 
   update(delta) {
-    if (this.#state !== 'opening') return;
-    this.#open = Math.min(1, this.#open + delta / DOOR.openTime);
-    const slide = this.#open * (DOOR.width / 2);
-    this.#left.position.x = -DOOR.width / 4 - slide;
-    this.#right.position.x = DOOR.width / 4 + slide;
-    if (this.#open >= 1) this.#state = 'open';
+    if (this.#state === 'hidden') return;
+    this.#time += delta;
+
+    if (this.#state === 'opening') {
+      this.#open = Math.min(1, this.#open + delta / DOOR.openTime);
+      const slide = this.#open * (DOOR.width / 2);
+      this.#left.position.x = -DOOR.width / 4 - slide;
+      this.#right.position.x = DOOR.width / 4 + slide;
+      if (this.#open >= 1) this.#state = 'open';
+    }
+
+    const pulse = 0.75 + 0.25 * Math.sin(this.#time * 4);
+    this.#portalUniforms.uTime.value = this.#time;
+    this.#portalUniforms.uOpacity.value = this.#open * pulse;
+    this.#portalLight.intensity = this.#open * (6 + Math.sin(this.#time * 4) * 2);
   }
 
   /** @returns {boolean} true si el jugador esta cruzando la puerta abierta */

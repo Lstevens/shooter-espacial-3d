@@ -181,7 +181,7 @@ export class Arena {
 
     const placements = [
       { x: -8, y: 1.5, z: -ARENA.half + 0.1, width: 3, height: 2, rotY: 0 },
-      { x: 3, y: 1.5, z: -ARENA.half + 0.1, width: 4, height: 2, rotY: 0 },
+      { x: 7, y: 1.5, z: -ARENA.half + 0.1, width: 3, height: 2, rotY: 0 },
       { x: ARENA.half - 0.1, y: 1.5, z: -6, width: 3, height: 2, rotY: Math.PI / 2 },
       { x: ARENA.half - 0.1, y: 1.5, z: 4, width: 4, height: 2, rotY: Math.PI / 2 },
       { x: -ARENA.half + 0.1, y: 1.5, z: -4, width: 3, height: 2, rotY: -Math.PI / 2 },
@@ -211,7 +211,9 @@ export class Arena {
       { start: [-ARENA.half + 0.1, 2.5, -8], end: [-ARENA.half + 0.1, 2.5, 8], radius: 0.12 },
       { start: [ARENA.half - 0.1, 2.2, -7], end: [ARENA.half - 0.1, 2.2, 7], radius: 0.15 },
       { start: [-8, 2.7, ARENA.half - 0.1], end: [8, 2.7, ARENA.half - 0.1], radius: 0.1 },
-      { start: [-7, 2.4, -ARENA.half + 0.1], end: [7, 2.4, -ARENA.half + 0.1], radius: 0.13 },
+      // Tuberia del muro del fondo partida en dos: el vano de salida queda libre.
+      { start: [-7, 2.4, -ARENA.half + 0.1], end: [-3, 2.4, -ARENA.half + 0.1], radius: 0.13 },
+      { start: [3, 2.4, -ARENA.half + 0.1], end: [7, 2.4, -ARENA.half + 0.1], radius: 0.13 },
     ];
 
     for (const { start, end, radius } of pipes) {
