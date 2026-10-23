@@ -23,15 +23,20 @@ Abre la URL que muestre Vite. Haz clic en el escenario para tomar el control del
 - Ratón: apuntar
 - Clic izquierdo: disparar
 - `1` / `2` / `3` o rueda del ratón: cambiar de arma (Pistola, AK, Cuchillo)
+- `R`: recargar el arma actual
+- `Espacio`: saltar
+- `F5`: guardar el progreso de la campaña
 
 ## Verificación
 
 ```bash
+npm test
 npm run build
 ```
 
 ## Estructura
 
-- Código: `src/` (`main.js` contiene toda la lógica del juego)
+- Código: `src/` (el composition root es `main.js`; el orden de juego vive en `core/Game.js`)
 - Assets estáticos: `public/assets/`
-- Documentación del proyecto: `PROJECT.md` y `AGENTS.md` (reglas para agentes de IA)
+- Documentación del proyecto: `PROJECT.md`, `ARCHITECTURE.md` y `AGENTS.md`
+- Coordinación de agentes: `docs/coordination.md`
