@@ -18,6 +18,8 @@ export class MobSystem {
   #reserve = [];
   #boss = null;
   #bossSpawned = false;
+  /** La arena ya se vacio tras caer el jefe: no vuelve a aparecer nadie. */
+  #bossCleared = false;
   #kills = 0;
   #stage;
   #random;
@@ -61,6 +63,7 @@ export class MobSystem {
     this.#clearAll();
     this.#stage = stage;
     this.#bossSpawned = false;
+    this.#bossCleared = false;
     this.#kills = 0;
     const level = stage.id;
 
@@ -77,6 +80,7 @@ export class MobSystem {
   spawnBoss(playerPosition) {
     if (this.#bossSpawned) return;
     this.#bossSpawned = true;
+    this.#bossCleared = false;
     this.#thinEscort();
     const level = this.#stage?.id ?? 1;
     const boss = this.#create(this.#stageBossVariant(), level);
@@ -87,6 +91,12 @@ export class MobSystem {
 
   /** @param {{ targetPosition: THREE.Vector3 }} context */
   update(delta, context) {
+    // Al caer el jefe la arena queda despejada: se retiran los normales que
+    // quedaban y no vuelve a aparecer ninguno mientras se cruza la puerta.
+    if (this.bossDefeated && !this.#bossCleared) {
+      this.#bossCleared = true;
+      this.#removeNormals();
+    }
     for (const mob of this.#mobs) {
       if (!mob.isAlive) {
         // El jefe es de una sola vez: si muere, se acaba la partida.
@@ -190,6 +200,21 @@ export class MobSystem {
   }
 
   /**
+   * Elimina de verdad a los normales que sigan vivos tras caer el jefe.
+   * Se muta el array en sitio para que los objetivos de las armas y los
+   * colliders publicados apunten siempre a la lista vigente.
+   */
+  #removeNormals() {
+    for (let i = this.#mobs.length - 1; i >= 0; i -= 1) {
+      const mob = this.#mobs[i];
+      if (mob === this.#boss) continue;
+      this.#scene.remove(mob.group);
+      disposeModel(mob.group);
+      this.#mobs.splice(i, 1);
+    }
+  }
+
+  /**
    * Al aparecer el jefe la arena se despeja: solo quedan
    * stage.escortCount enemigos normales. Los sobrantes se guardan en
    * reserva (fuera de escena) y se liberan en el proximo setStage.
@@ -224,9 +249,6 @@ export class MobSystem {
 
   /** true si el punto empieza ya dentro de un prop y un mob quedaria atrapado. */
   #isBlocked(position) {
-    if (!this.#collision) return false;
-    const probe = position.clone();
-    this.#collision.resolveEnvironment(probe, MOB.radius, 1.8);
-    return probe.distanceTo(position) > 1e-4;
+    return this.#collision?.isBlocked(position, MOB.radius, 1.8) ?? false;
   }
 }

@@ -366,6 +366,14 @@ compartirlos hacia que el destello de impacto de uno se viera en todos.
   destello y al reaparecer, de modo que no se pierde ni queda en negro.
 - Las variantes normales (`soldier`, `alien`, `tank`) se reparten por turno
   entre los `MOB.count` enemigos; el jefe es siempre `boss`.
+- **Navegacion**: `Mob` no camina en linea recta contra los props. Antes de
+  moverse sondea hacia delante varios puntos (`CollisionWorld.isBlocked`) y,
+  si la recta esta tapada, prueba giros cada vez mayores (`NAV_OFFSETS`). El
+  lado de giro (`#turnSign`) se fija al aparecer para no oscilar. Si todo esta
+  tapado avanza de frente y la colision lo desliza.
+- **Fin de la camara**: al caer el jefe, `MobSystem` retira los normales que
+  quedaban (`#removeNormals`) y desactiva su reaparicion; solo queda el jefe
+  inerte y la puerta. Asi se cruza la salida sin enemigos nuevos.
 
 ### Proporciones
 
@@ -399,8 +407,10 @@ suelo (X,Z) contra dos tipos de geometria:
 
 `Arena` y cada decorado exponen `colliders`; `Game` los vuelca al mundo en cada
 `setStage`. El jugador y los mobs empujan contra el entorno; los mobs se
-separan entre si para no apilarse. Sin mundo (pruebas o ausencia), `Player`
-cae al clamp simple anterior.
+separan entre si para no apilarse. `isBlocked` es la version consultiva de la
+colision: no corrige nada, solo responde si un cuerpo cabe en un punto, y es
+la que usa la IA para esquivar. Sin mundo (pruebas o ausencia), `Player` cae
+al clamp simple anterior.
 
 ## Decorado por themes
 

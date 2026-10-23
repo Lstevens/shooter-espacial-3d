@@ -5,6 +5,8 @@ import { createMobModel, registerEntity } from './MobFactory.js';
 const HIT_FLASH = 0x88ccff;
 const HIT_FLASH_TIME = 0.12;
 const ATTACK_ANIM_TIME = 0.4;
+/** Desvios probados al esquivar, en radianes, de menor a mayor. */
+const NAV_OFFSETS = [0, 0.5, 1.0, 1.5, 2.0];
 
 /**
  * Enemigo. Implementa el contrato Target (group, position, isAlive,
@@ -27,6 +29,10 @@ export class Mob {
   #attackTime = 0;
   #toTarget = new THREE.Vector3();
   #next = new THREE.Vector3();
+  #moveDir = new THREE.Vector3();
+  #probe = new THREE.Vector3();
+  /** Lado al que rodea un obstaculo. Fijo para no oscilar izquierda/derecha. */
+  #turnSign = Math.random() < 0.5 ? -1 : 1;
   #onKilled;
 
   constructor({ variant, maxHp = MOB.maxHp, level, onKilled }) {
@@ -108,18 +114,27 @@ export class Mob {
     toTarget.y = 0;
     const distance = toTarget.length();
     const { attackRange, speed } = this.variant;
-
-    // Los modelos miran hacia -Z, asi que el yaw va invertido respecto a lookAt.
-    if (distance > 0.001) {
-      this.group.rotation.y = Math.atan2(-toTarget.x, -toTarget.z);
-    }
+    const bodyHeight = this.group.position.y + 1.8;
 
     const moving = distance < MOB.aggroRange && distance > attackRange;
+    let facingX = toTarget.x;
+    let facingZ = toTarget.z;
     if (moving) {
       toTarget.normalize();
-      this.#next.copy(this.group.position).addScaledVector(toTarget, speed * delta);
-      context.collision?.resolveEnvironment(this.#next, MOB.radius, this.group.position.y + 1.8);
+      // Si la linea recta esta tapada, rodea el prop por el lado mas cercano
+      // en vez de empujarlo de frente y quedarse clavado.
+      const direction = this.#chooseDirection(toTarget, context.collision, bodyHeight);
+      this.#next.copy(this.group.position).addScaledVector(direction, speed * delta);
+      context.collision?.resolveEnvironment(this.#next, MOB.radius, bodyHeight);
       this.group.position.copy(this.#next);
+      facingX = direction.x;
+      facingZ = direction.z;
+    }
+
+    // Los modelos miran hacia -Z, asi que el yaw va invertido respecto a lookAt.
+    // Mira hacia donde camina; al atacar, hacia el jugador.
+    if (Math.abs(facingX) > 1e-4 || Math.abs(facingZ) > 1e-4) {
+      this.group.rotation.y = Math.atan2(-facingX, -facingZ);
     }
 
     this.#model.animate(delta, {
@@ -135,6 +150,61 @@ export class Mob {
       this.#attackTime = 0;
       context.onHit(this.variant.damage);
     }
+  }
+
+  /**
+   * Devuelve la direccion de avance menos desviada que no choque. Prueba
+   * primero de frente y luego giros cada vez mayores, empezando por el lado
+   * que el mob ya venia usando para no oscilar. Si todo esta tapado avanza
+   * de frente y deja que la colision lo deslice.
+   * @param {THREE.Vector3} desired direccion normalizada al objetivo
+   * @param {import('../engine/CollisionWorld.js').CollisionWorld|null} collision
+   * @param {number} bodyHeight
+   */
+  #chooseDirection(desired, collision, bodyHeight) {
+    if (!collision) {
+      this.#moveDir.copy(desired);
+      return this.#moveDir;
+    }
+    for (const offset of NAV_OFFSETS) {
+      if (offset === 0) {
+        if (!this.#isAheadBlocked(desired, collision, bodyHeight)) {
+          this.#moveDir.copy(desired);
+          return this.#moveDir;
+        }
+        continue;
+      }
+      const signs = this.#turnSign > 0 ? [1, -1] : [-1, 1];
+      for (const sign of signs) {
+        this.#rotateY(desired, offset * sign);
+        if (!this.#isAheadBlocked(this.#moveDir, collision, bodyHeight)) {
+          this.#turnSign = sign;
+          return this.#moveDir;
+        }
+      }
+    }
+    this.#moveDir.copy(desired);
+    return this.#moveDir;
+  }
+
+  /** Gira una direccion sobre el plano XZ (positivo = sentido horario). */
+  #rotateY(direction, angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const x = direction.x;
+    const z = direction.z;
+    this.#moveDir.set(x * cos + z * sin, 0, -x * sin + z * cos);
+  }
+
+  /** Sondea varios puntos de la linea de avance, no solo el final. */
+  #isAheadBlocked(direction, collision, bodyHeight) {
+    const probeRadius = MOB.radius * MOB.navProbeScale;
+    for (let i = 1; i <= MOB.navSteps; i += 1) {
+      const ahead = (MOB.navLookahead * i) / MOB.navSteps;
+      this.#probe.copy(this.group.position).addScaledVector(direction, ahead);
+      if (collision.isBlocked(this.#probe, probeRadius, bodyHeight)) return true;
+    }
+    return false;
   }
 
   #tickHitFlash(delta) {

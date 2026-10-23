@@ -40,6 +40,35 @@ export class CollisionWorld {
   }
 
   /**
+   * Consulta sin mover: true si un cuerpo de ese radio no cabe ahi, sea
+   * por el limite de la arena o por un prop que corta su altura. La usan
+   * los enemigos para decidir hacia donde esquivar antes de caminar.
+   * @param {{x: number, z: number}} position
+   * @param {number} radius
+   * @param {number} bodyHeight
+   */
+  isBlocked(position, radius, bodyHeight) {
+    const limit = this.#half - radius;
+    if (
+      position.x < -limit ||
+      position.x > limit ||
+      position.z < -limit ||
+      position.z > limit
+    ) {
+      return true;
+    }
+    for (const box of this.#statics) {
+      if (box.max.y <= STEP_HEIGHT || box.min.y >= bodyHeight) continue;
+      const closestX = THREE.MathUtils.clamp(position.x, box.min.x, box.max.x);
+      const closestZ = THREE.MathUtils.clamp(position.z, box.min.z, box.max.z);
+      const dx = position.x - closestX;
+      const dz = position.z - closestZ;
+      if (dx * dx + dz * dz < radius * radius) return true;
+    }
+    return false;
+  }
+
+  /**
    * Corrige contra el limite de la arena y los props estaticos.
    * @param {THREE.Vector3} position se modifica in situ
    * @param {number} radius
