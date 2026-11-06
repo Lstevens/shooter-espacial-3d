@@ -12,6 +12,10 @@
         <span id="hp-text">20 / 20</span>
       </div>
       <strong id="weapon-label">Pistola</strong>
+      <div id="weapon-ammo">
+        <span id="ammo-count">12 / 48</span>
+        <div id="reload-track"><div id="reload-fill"></div></div>
+      </div>
       <span id="stage-label">Camara 1/5: Hangar · Amenaza baja</span>
       <span id="time">Resistencia: 0:00</span>
       <span id="hint"
@@ -20,10 +24,24 @@
       >
     </div>
     <div id="crosshair"></div>
+    <div id="damage-indicator"></div>
+    <div id="boss-bar">
+      <span id="boss-name">NÚCLEO HOSTIL</span>
+      <div id="boss-track"><div id="boss-fill"></div></div>
+    </div>
     <div id="announce"></div>
     <div id="damage-flash"></div>
     <div id="low-health"></div>
     <div id="damage-numbers"></div>
+    <div id="pause">
+      <h2 id="pause-title">PAUSA</h2>
+      <p>Se perdió el control del ratón.</p>
+      <div class="gameover-actions">
+        <button id="pause-resume">Continuar</button>
+        <button id="pause-restart">Reintentar</button>
+        <button id="pause-restart-first">Desde cámara 1</button>
+      </div>
+    </div>
     <div id="gameover">
       <h1 id="gameover-title">OPERADOR CAÍDO</h1>
       <p id="gameover-text"></p>
