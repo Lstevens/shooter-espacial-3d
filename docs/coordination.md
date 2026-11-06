@@ -1,46 +1,36 @@
-# Coordinacion de agentes
+# Convenciones de integracion
 
-Este documento es la fuente de verdad para el trabajo en paralelo. Lo mantiene
-el agente de core/integracion (opencode). El agente de UI/audio/pickups
-(freebuff) lo lee, pero no lo edita.
+`main` es la rama publicada y verificada. El trabajo de UI y audio de fases 0-2c
+ya esta integrado (merges `f31394a` y `57bf9cc`), incluido el HUD v2 y los
+contratos descritos en `src/contracts.js`. Las ramas `agent/core` y `agent/ui`
+quedan como historial del desarrollo inicial y no reciben trabajo nuevo.
 
-## Ramas y carpetas
+## Ramas
 
-| Agente | Rama | Carpeta | Rol |
-| --- | --- | --- | --- |
-| opencode | `agent/core` | repo principal | core, gameplay, tests, integracion |
-| freebuff | `agent/ui` | `..\shoter-3d-ui` | UI, audio, pickups, tests de UI |
+- `main`: rama estable; todo cambio entra mediante una rama corta y revision.
+- `feature/*` o `fix/*`: una rama por cambio, pequena y facil de revertir.
+- No se trabaja directamente en `main`.
 
-Nadie trabaja en la rama del otro. La integracion se hace en
-`integration/fases-0-2c` y la ejecuta opencode.
+## Verificacion antes de integrar
 
-## Propiedad de archivos
+```bash
+npm ci
+npm test
+npm run build
+```
 
-### opencode (A)
+Si el cambio toca `docs/`, anade:
 
-- `src/core/**`, `src/enemies/**`, `src/engine/**`, `src/weapons/**`,
-  `src/input/**`, `src/fx/**`, `src/player/**`.
-- `src/main.js`, `src/config.js`, `src/contracts.js`, `package.json`.
-- `README.md`, `ARCHITECTURE.md`, `docs/**`.
-- `test/core/**`, `test/engine/**`, `test/enemies/**`, `test/weapons/**`.
+```bash
+npm run docs:build
+```
 
-### freebuff (B)
+- [ ] `npm test` en verde.
+- [ ] `npm run build` en verde.
+- [ ] Si el cambio es visual o de input, se probo en el navegador.
+- [ ] No se editaron `dist/` ni `docs/.vitepress/dist|cache/`.
 
-- `index.html`, `src/style.css`.
-- `src/ui/**`, `src/audio/**`, `src/pickups/**`.
-- `test/ui/**`, `test/audio/**`, `test/pickups/**`.
-- Puede crear `docs/status-ui.md` para reportar avances. No edita este archivo.
-
-### Prohibido para B
-
-`src/main.js`, `src/core/**`, `src/config.js`, `src/enemies/**`,
-`src/weapons/**`, `src/input/**`, `src/fx/**`, `package.json`,
-`README.md`, `ARCHITECTURE.md`, `docs/coordination.md`, lockfiles.
-
-Si B necesita un cambio en un archivo de A, lo pide en el mensaje final o en
-`docs/status-ui.md`. A lo aplica en integracion.
-
-## Contratos congelados v1
+## Contratos implementados (v1)
 
 Los tipos completos viven en `src/contracts.js`. Esta es la parte ejecutable:
 
@@ -91,50 +81,25 @@ INPUT_EVENTS.reloadPress
 
 Reglas de compatibilidad:
 
-- B debe tolerar campos ausentes con valores por defecto:
-  `snapshot.weaponAmmo?.hasAmmo ?? false`, `snapshot.boss ?? null`.
-- A llamara a los metodos nuevos del HUD con `?.` hasta que B este integrado.
-- A no importa `src/audio/**` ni `src/pickups/**` antes de la integracion.
+- `Hud.render` tolera snapshots v0 con valores por defecto:
+  `snapshot.weaponAmmo?.hasAmmo ?? false` y `snapshot.boss ?? null`.
+- `AudioSystem` y `PickupSystem` no importan nada de `src/core`, `src/enemies`
+  ni `src/weapons`.
 
-## Flujo de trabajo
+## Pendiente conocido
 
-1. Cada agente hace commits pequenos en su rama.
-2. Antes de cada commit: `npm test` y `npm run build`.
-3. Nunca `git add -A`, `git add .`, `git commit -a`, amend ni force-push.
-4. No formatear archivos ajenos ni todo el repo.
-5. Usar solo npm. No tocar `pnpm-lock.yaml`.
-6. No agregar dependencias sin coordinarlo.
-7. Si aparece un conflicto, se resuelve en `integration/fases-0-2c`.
+- `src/pickups/PickupSystem.js` y sus tests estan en `main`, pero todavia no
+  estan cableados: ni `src/main.js` ni `src/core/Game.js` los referencian. El
+  siguiente paso es conectarlo (drops al matar, aplicar vida/municion y sonido
+  de recogida), igual que se hizo con el audio.
 
-## Integracion (solo A)
-
-```powershell
-git switch -c integration/fases-0-2c main
-git merge --no-ff agent/ui
-git merge --no-ff agent/core
-npm ci
-npm test
-npm run build
-```
-
-Antes del merge, A revisa:
-
-```powershell
-git diff --name-only main...agent/ui
-```
-
-Si B toco un archivo prohibido, se corrige en `agent/ui` antes de integrar.
-
-## Checklist manual de integracion
+## Checklist manual
 
 - [ ] Pausa con `Esc`: overlay, reanudar y reiniciar.
 - [ ] Municion visible en pistola/AK; cuchillo sin municion.
 - [ ] Recarga con `R`; no recarga con cargador lleno ni sin reserva.
 - [ ] El HUD no reescribe el DOM si el texto no cambio.
-- [ ] Audio: disparo, recarga, vacio, dano, muerte, victoria, jefe, pickup.
-- [ ] Drops de vida y municion; recoger con el jugador.
+- [ ] Audio: disparo, dano, muerte, victoria, jefe, mute con `M`.
 - [ ] Indicador direccional de dano.
 - [ ] Al cruzar la puerta se restaura la vida completa.
-- [ ] Cadáveres invisibles no bloquean disparos.
-- [ ] El cuchillo acierta a bocajarro.
 - [ ] `npm test` y `npm run build` en verde.

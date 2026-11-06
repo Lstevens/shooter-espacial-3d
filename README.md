@@ -40,4 +40,5 @@ npm run build
 - Código: `src/` (el composition root es `main.js`; el orden de juego vive en `core/Game.js`)
 - Assets estáticos: `public/assets/`
 - Documentación del proyecto: `PROJECT.md`, `ARCHITECTURE.md` y `AGENTS.md`
-- Coordinación de agentes: `docs/coordination.md`
+- Convenciones de integración: `docs/coordination.md`
+- Estado de UI, audio y pickups: `docs/status-ui.md`
