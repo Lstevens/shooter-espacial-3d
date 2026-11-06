@@ -13,6 +13,7 @@ import { MeleeAttack } from './weapons/attacks/MeleeAttack.js';
 import { MobSystem } from './enemies/MobSystem.js';
 import { EffectsSystem } from './fx/EffectsSystem.js';
 import { Hud } from './ui/Hud.js';
+import { AudioSystem } from './audio/AudioSystem.js';
 import { GameState } from './core/GameState.js';
 import { Campaign } from './core/Campaign.js';
 import { Game } from './core/Game.js';
@@ -25,6 +26,7 @@ const clock = new THREE.Clock();
 const state = new GameState();
 const campaign = new Campaign();
 const hud = new Hud();
+const audio = new AudioSystem();
 const effects = new EffectsSystem({ scene: arena.scene });
 const collision = new CollisionWorld();
 const player = new Player({
@@ -47,6 +49,7 @@ const weapons = new WeaponSystem({
   effects,
   isFiring: () => input.firing,
   attacks: [new HitscanAttack(), new MeleeAttack()],
+  audio,
 });
 
 const input = new InputController({
@@ -70,6 +73,7 @@ const game = new Game({
   campaign,
   arena,
   collision,
+  audio,
 });
 
 player.on('lock', () => {
@@ -83,6 +87,7 @@ player.on('unlock', () => {
 });
 
 input.on(INPUT_EVENTS.lockRequest, () => {
+  audio.resume();
   if (player.isLocked || state.isFinished) return;
   player.lock();
 });
@@ -95,9 +100,24 @@ input.on(INPUT_EVENTS.weaponSelect, (slot) => weapons.select(slot));
 
 input.on(INPUT_EVENTS.weaponCycle, (direction) => weapons.cycle(direction));
 
-hud.onRestart(() => game.restart());
+hud.onRestart(() => {
+  audio.resume();
+  game.restart();
+});
 
-hud.onRestartFromFirst(() => game.restartFromFirst());
+hud.onRestartFromFirst(() => {
+  audio.resume();
+  game.restartFromFirst();
+});
+
+hud.onResume(() => {
+  audio.resume();
+  player.lock();
+});
+
+input.on(INPUT_EVENTS.muteToggle, () => {
+  hud.announce(audio.toggleMute() ? 'Audio silenciado' : 'Audio activado');
+});
 
 input.on(INPUT_EVENTS.savePress, () => {
   campaign.save();

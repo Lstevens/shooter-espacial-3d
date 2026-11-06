@@ -26,6 +26,7 @@ Abre la URL que muestre Vite. Haz clic en el escenario para tomar el control del
 - `R`: recargar el arma actual
 - `Espacio`: saltar
 - `F5`: guardar el progreso de la campaña
+- `M`: silenciar / activar el audio
 
 ## Verificación
 

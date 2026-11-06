@@ -9,6 +9,7 @@ export const INPUT_EVENTS = {
   weaponSelect: 'weapon:select',
   weaponCycle: 'weapon:cycle',
   lockRequest: 'lock:request',
+  muteToggle: 'audio:toggleMute',
 };
 
 /**
@@ -38,6 +39,7 @@ export class InputController {
       this.#events.emit(INPUT_EVENTS.jumpPress);
     });
     this.#keyboard.on('save:press', () => this.#events.emit(INPUT_EVENTS.savePress));
+    this.#keyboard.on('audio:toggleMute', () => this.#events.emit(INPUT_EVENTS.muteToggle));
   }
 
   on(event, handler) {

@@ -28,11 +28,12 @@ export class Game {
   #campaign;
   #arena;
   #collision;
+  #audio;
   #door = null;
   #exitReady = false;
   #frame = () => this.#tick();
 
-  constructor({ scene, renderer, camera, state, player, input, weapons, mobs, effects, skybox, hud, campaign, arena, collision }) {
+  constructor({ scene, renderer, camera, state, player, input, weapons, mobs, effects, skybox, hud, campaign, arena, collision, audio }) {
     this.#scene = scene;
     this.#renderer = renderer;
     this.#camera = camera;
@@ -47,6 +48,7 @@ export class Game {
     this.#campaign = campaign;
     this.#arena = arena;
     this.#collision = collision;
+    this.#audio = audio;
   }
 
   start() {
@@ -85,6 +87,7 @@ export class Game {
     this.#hud.damageNumber(amount);
     this.#hud.render(this.#snapshot());
     if (died) this.endGame(false);
+    else this.#audio?.hurt();
   }
 
   endGame(won) {
@@ -92,6 +95,8 @@ export class Game {
     const stage = this.#campaign.stage;
     const unlocked = won ? this.#campaign.advance() : null;
     this.#state.finish(won);
+    if (won) this.#audio?.win();
+    else this.#audio?.death();
     this.#player.unlock();
     this.#hud.showGameOver({
       won,
@@ -141,6 +146,7 @@ export class Game {
   /** Monta la puerta de salida y la abre. */
   #openExit() {
     this.#exitReady = true;
+    this.#audio?.bossDown();
     this.#door = new Door({ scene: this.#scene });
     this.#door.open();
     this.#hud.announce('Núcleo destruido · acceso abierto');
