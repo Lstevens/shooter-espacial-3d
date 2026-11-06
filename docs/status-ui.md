@@ -1,6 +1,6 @@
 # Estado UI / audio / pickups (agente B - freebuff)
 
-Rama `agent/ui`. Ultima verificacion: `npm test` (20/20) y `npm run build` en verde.
+Rama `agent/ui`. Verificacion despues del cableado de audio: `npm test` (26/26) y `npm run build` en verde.
 
 ## Entregado
 
@@ -15,26 +15,20 @@ Rama `agent/ui`. Ultima verificacion: `npm test` (20/20) y `npm run build` en ve
 | `test/audio/audio-system.test.js` | Pereza del contexto, mute, no-op sin soporte |
 | `test/pickups/pickup-system.test.js` | Contrato, recogida, lifetime, clear/dispose |
 
-## Lo que A debe cablear en integracion
+## Cableado de audio (completado en esta rama)
 
-1. **`audio.resume()` en el primer gesto** (click que pide PointerLock). Sin
-   llamarlo no suena nada: `AudioSystem` no crea contexto hasta `resume()`.
-2. **Pausa**: en `player.on('unlock')` llamar `hud.showPause()` y en
-   `player.on('lock')` `hud.hidePause()`. El overlay ya existe.
-3. **`hud.onResume(() => player.lock())`** en `main.js`: el boton
-   `#pause-resume` pide el PointerLock (el click es el gesto exigido).
-4. **Silenciador**: tecla `M` en `KeyboardInput` -> evento nuevo ->
-   `audio.toggleMute()` (el input es de A).
-5. **Drops**: en `main.js` o `Game`, `mobs.onMobKilled = (mob) => { ... }`
-   con probabilidad; `pickups.spawn('health'|'ammo', mob.position)` y
-   `GAME.pickupHeal` / `GAME.pickupAmmo` para aplicarlos en `#applyPickup`
-   (ya implementado en el lado A). El `update`/`clear` de pickups ya esta
-   cableados en `Game`.
-6. **Indicador direccional**: `Game.onPlayerDamage(amount, sourcePosition)`
-   y `hud.damageFrom?.(angulo)` ya estan en el lado A; B solo expone el
-   metodo (acepta el `?.` hasta integrar).
-7. **Al ganar/morir**: `hud.hidePause()` junto a `hud.showGameOver(...)`.
+- `main.js` instancia `AudioSystem` y lo inyecta en `Game` y `WeaponSystem`.
+- El contexto se reanuda durante el click de PointerLock y al reanudar/reiniciar.
+- Disparos, daño no letal, muerte, victoria y derrota del jefe disparan sus efectos.
+- La tecla `M` alterna silencio y el HUD anuncia el estado.
+- Recarga y recogida aún no producen sonidos en esta rama porque las mecánicas
+  de munición y pickups no están presentes aquí.
 
+## Pruebas y límite de verificación
+
+`test/audio/audio-system.test.js` verifica la síntesis con un `AudioContext` falso;
+`test/audio/game-audio-wiring.test.js` cubre el cableado de eventos del juego.
+La reproducción física debe confirmarse en un navegador con salida de audio.
 ## Tolerancia (contratos congelados v1)
 
 - `Hud.render` lee `snapshot.weaponAmmo?.hasAmmo ?? false` y

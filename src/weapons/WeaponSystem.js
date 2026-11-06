@@ -11,16 +11,18 @@ export class WeaponSystem {
   #clock;
   #isFiring;
   #effects;
+  #audio;
   #targets = [];
   #key = DEFAULT_WEAPON;
   #lastShot = -Infinity;
 
-  constructor({ view, viewModel, clock, isFiring, effects, attacks }) {
+  constructor({ view, viewModel, clock, isFiring, effects, attacks, audio }) {
     this.#view = view;
     this.#viewModel = viewModel;
     this.#clock = clock;
     this.#isFiring = isFiring;
     this.#effects = effects;
+    this.#audio = audio;
     for (const attack of attacks) this.#attacks.set(attack.id, attack);
     this.select(DEFAULT_WEAPON);
   }
@@ -60,6 +62,7 @@ export class WeaponSystem {
     this.#lastShot = now;
 
     this.#viewModel.onShot(weapon);
+    this.#audio?.shot(this.#key);
     this.#attacks.get(weapon.attack)?.execute(this.#buildContext(), weapon);
     return true;
   }
